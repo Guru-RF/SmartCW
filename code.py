@@ -52,8 +52,19 @@ KEYBOARD = False
 # setup buzzer (set duty cycle to ON to sound)
 buzzer = pwmio.PWMOut(board.GP24,variable_frequency=True)
 buzzer.frequency = SIDEFREQ
+
+# setup buzzer (set duty cycle to ON to sound)
+lineout = pwmio.PWMOut(board.GP15,variable_frequency=True)
+lineout.frequency = SIDEFREQ
+
+# setup CW out
+cwOUT = digitalio.DigitalInOut(board.GP14)
+cwOUT.direction = digitalio.Direction.OUTPUT
+cwOUT.value = False
+
 OFF = 0
 ON = 2**15
+
 
 # setup midi
 midi = adafruit_midi.MIDI(
@@ -118,10 +129,6 @@ dah_key.pull = Pull.UP
 pttBTN = DigitalInOut(board.GP16)
 pttBTN.direction = Direction.INPUT
 pttBTN.pull = Pull.UP
-
-pttINPUT = DigitalInOut(board.GP15)
-pttINPUT.direction = Direction.INPUT
-pttINPUT.pull = Pull.UP
 
 # keyboard mode
 if pttBTN.value is False:
@@ -191,10 +198,14 @@ async def cw(on):
         midi.send(NoteOn(65,0))
         if SIDETONE:
            buzzer.duty_cycle = ON
+           lineout.duty_cycle = ON
+           cwOUT.value = False
     else:
         # key.value = False
         midi.send(NoteOff(65,0))
         buzzer.duty_cycle = OFF
+        lineout.duty_cycle = OFF
+        cwOUT.value = True
 
 # ptt on/off    
 async def ptt(on):
@@ -258,10 +269,8 @@ async def play(pattern):
     
 # send and play memories on button presses
 async def buttons():
-    global pttBTN, pttINPUT
+    global pttBTN
     if not pttBTN.value:
-        await ptt(True)
-    if not pttINPUT.value:
         await ptt(True)
         
 # receive, send, and play keystrokes from computer
