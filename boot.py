@@ -1,7 +1,10 @@
 import usb_cdc
 import board
 import storage
+import supervisor
 from digitalio import DigitalInOut, Direction, Pull
+
+supervisor.set_usb_identification("RF.Guru", "SmartCW")
 
 # setup paddle inputs
 dit_key = DigitalInOut(board.GP13)
