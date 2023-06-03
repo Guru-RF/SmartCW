@@ -39,6 +39,7 @@ import adafruit_midi
 from adafruit_midi.note_off import NoteOff
 from adafruit_midi.note_on import NoteOn
 import config
+import asyncio
 
 # User config
 WPM = config.WPM
@@ -79,7 +80,7 @@ serLED2 = digitalio.DigitalInOut(board.GP7)
 serLED2.direction = digitalio.Direction.OUTPUT
 serLED2.value = True
 
-def led(what):
+async def led(what):
     if what=='dit':  
         ditLED.value = False
     if what=='ditOFF':
@@ -184,7 +185,7 @@ MAP('...-.', '*') # /SN understood
 MAP('.......','#') # error
 
 # key down and up
-def cw(on):
+async def cw(on):
     if on:
         # key.value = True
         midi.send(NoteOn(65,0))
@@ -196,24 +197,24 @@ def cw(on):
         buzzer.duty_cycle = OFF
 
 # ptt on/off    
-def ptt(on):
+async def ptt(on):
     if on:
-        led('pwrOFF')
-        led('dit')
+        await led('pwrOFF')
+        await led('dit')
         midi.send(NoteOn(66,0))
-        time.sleep(.15)  
-        led('dah')
+        await asyncio.sleep(.15)  
+        await led('dah')
         midi.send(NoteOff(66,0))
-        time.sleep(.15)  
-        led('pwr')
-        time.sleep(.15)  
-        led('pwrOFF')
-        time.sleep(.15)  
-        led('dahOFF')
-        time.sleep(.15)  
-        led('ditOFF')
-        time.sleep(.15)  
-        led('pwr')
+        await asyncio.sleep(.15)  
+        await led('pwr')
+        await asyncio.sleep(.15)  
+        await led('pwrOFF')
+        await asyncio.sleep(.15)  
+        await led('dahOFF')
+        await asyncio.sleep(.15)  
+        await led('ditOFF')
+        await asyncio.sleep(.15)  
+        await led('pwr')
 
 # timing
 def dit_time():
@@ -222,7 +223,7 @@ def dit_time():
     return 60.0 / WPM / PARIS
 
 # send to computer
-def send(c):
+async def send(c):
 #   print(c,end='')
     if serial.connected:
        serial.write(str.encode(c))
@@ -230,21 +231,21 @@ def send(c):
         keyboard_layout.write(c)
         
 # transmit pattern
-def play(pattern):
+async def play(pattern):
     for sound in pattern:
         if sound == '.':
-            cw(True)
-            time.sleep(dit_time())
-            cw(False)
-            time.sleep(dit_time())
+            await cw(True)
+            await asyncio.sleep(dit_time())
+            await cw(False)
+            await asyncio.sleep(dit_time())
         elif sound == '-':
-            cw(True)
-            time.sleep(3*dit_time())
-            cw(False)
-            time.sleep(dit_time())
+            await cw(True)
+            await asyncio.sleep(3*dit_time())
+            await cw(False)
+            await asyncio.sleep(dit_time())
         elif sound == ' ':
-            time.sleep(4*dit_time())
-    time.sleep(2*dit_time())
+            await asyncio.sleep(4*dit_time())
+    await asyncio.sleep(2*dit_time())
 
 ## send and play message
 #def xmit(message):
@@ -256,22 +257,22 @@ def play(pattern):
 #    led('xmitOFF')
     
 # send and play memories on button presses
-def buttons():
+async def buttons():
     global pttBTN, pttINPUT
     if not pttBTN.value:
-        ptt(True)
+        await ptt(True)
     if not pttINPUT.value:
-        ptt(True)
+        await ptt(True)
         
 # receive, send, and play keystrokes from computer
-def serials():
+async def serials():
     if serial.connected:
         if serial.in_waiting > 0:
-            led('serial') 
+            await led('serial') 
             letter = serial.read().decode('utf-8')
-            send(letter)
-            play(encode(letter))
-            led('serialOFF')
+            await send(letter)
+            await play(encode(letter))
+            await led('serialOFF')
 
 # decode iambic b paddles
 class Iambic:
@@ -284,6 +285,7 @@ class Iambic:
         self.in_char = False ; self.in_word = False
         self.start = 0
         self.char = ''
+        return None
     def hack(self):
         self.start = time.monotonic()
     def elapsed(self):
@@ -291,75 +293,97 @@ class Iambic:
     def set_state(self, new_state):
         self.hack()
         self.state = new_state
-    def latch_paddles(self):
+    async def latch_paddles(self):
         if not self.dit_key.value:
             self.dit = True
         if not self.dah_key.value:
             self.dah = True
-    def start_dit(self):
+    async def start_dit(self):
         self.dit = False    ; self.dah = False
         self.in_char = True ; self.in_word = True
         self.char += "."
-        cw(True)
+        await cw(True)
         self.set_state(self.DIT)
-        led('dit')
-    def start_dah(self):
+        await led('dit')
+    async def start_dah(self):
         self.dit = False    ; self.dah = False
         self.in_char = True ; self.in_word = True
         self.char += "-"
-        cw(True)
+        await cw(True)
         self.set_state(self.DAH)
-        led('dah')
-    def cycle(self):
-        self.latch_paddles()
+        await led('dah')
+    async def cycle(self):
+        await self.latch_paddles()
         if self.state == self.SPACE:
             if self.dit:
-                self.start_dit()
+                await self.start_dit()
             elif self.dah:
-                self.start_dah()
+                await self.start_dah()
             elif self.in_char and self.elapsed()>2*dit_time():
                 self.in_char = False
-                send(decode(self.char))
+                await send(decode(self.char))
                 self.char = ""
-                led('ditOFF')
-                led('dahOFF')
+                await led('ditOFF')
+                await led('dahOFF')
             elif self.in_word and self.elapsed()>6*dit_time():
                 self.in_word = False
-                send(" ")
-                led('ditOFF')
-                led('dahOFF')
+                await send(" ")
+                await led('ditOFF')
+                await led('dahOFF')
         elif self.state == self.DIT:
             if self.elapsed() > dit_time():
-                cw(False)
+                await cw(False)
                 self.dit = False
                 self.set_state(self.DIT_WAIT)
         elif self.state == self.DIT_WAIT:
             if self.elapsed() > dit_time():
                 if self.dah:
-                    self.start_dah()
+                    await self.start_dah()
                 elif self.dit:
-                    self.start_dit()
+                    await self.start_dit()
                 else:
                     self.set_state(self.SPACE)
         elif self.state == self.DAH:
             if self.elapsed() > 3*dit_time():
-                cw(False)
+                await cw(False)
                 self.dah = False
                 self.set_state(self.DAH_WAIT)
         elif self.state == self.DAH_WAIT:
             if self.elapsed() > dit_time():
                 if self.dit:
-                    self.start_dit()
+                    await self.start_dit()
                 elif self.dah:
-                    self.start_dah()
+                    await self.start_dah()
                 else:
                     self.set_state(self.SPACE)              
 
-# paddle instance
-iambic = Iambic(dit_key,dah_key)
 
-# run
-while True:
-    buttons()
-    serials()
-    iambic.cycle()          
+async def iambic_runner(iambic):
+    print("Iambic task")
+    while True:
+        await iambic.cycle()
+        await asyncio.sleep(0)
+
+
+async def buttons_runner():
+    print("Buttons task")
+    while True:
+       await buttons()
+       await asyncio.sleep(0)
+
+async def serials_runner():
+    print("Serials task")
+    while True:
+       await serials()
+       await asyncio.sleep(0)
+
+async def main():  # Don't forget the async!
+   iambic = Iambic(dit_key,dah_key)
+   iambic_task = asyncio.create_task(iambic_runner(iambic))
+   serials_task = asyncio.create_task(serials_runner())
+   buttons_task = asyncio.create_task(buttons_runner())
+   await asyncio.gather(iambic_task, serials_task, buttons_task)
+
+
+asyncio.run(main())
+        
