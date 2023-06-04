@@ -1,6 +1,15 @@
 # SmartCW Copyright 2023 Joeri Van Dooren (ON3URE)
 
-# based on xiaoKey
+# loosly based on xiaoKey
+# especially the CW code to text mapping
+
+# completely ASYNC
+# CW output to PIEZO and line-out
+# CW output to USB Keyboard emulator, Digital output (for connecting to a transceiver), Serial output (to use on a computer)
+# CW input via Serial, Paddle
+# Indicative LEDS
+# PTT button
+# config file
 
 # xiaoKey - a computer connected iambic keyer
 # Copyright 2022 Mark Woodworth (AC9YW)
