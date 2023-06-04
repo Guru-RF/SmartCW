@@ -266,15 +266,6 @@ async def play(pattern):
         elif sound == ' ':
             await asyncio.sleep(4*dit_time())
     await asyncio.sleep(2*dit_time())
-
-## send and play message
-#def xmit(message):
-#    led('xmit')
-#    for letter in message:
-#        send(letter)
-#        play(encode(letter))
-#    play(' ')
-#    led('xmitOFF')
     
 # send and play memories on button presses
 async def buttons():
