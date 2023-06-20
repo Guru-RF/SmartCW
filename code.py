@@ -245,8 +245,9 @@ def dit_time():
 # send to computer
 async def send(c):
 #   print(c,end='')
-    if serial.connected:
-       serial.write(str.encode(c))
+    if serial is not None:
+	    if serial.connected:
+	       serial.write(str.encode(c))
     if KEYBOARD:
         keyboard_layout.write(c)
         
@@ -275,13 +276,14 @@ async def buttons():
         
 # receive, send, and play keystrokes from computer
 async def serials():
-    if serial.connected:
-        if serial.in_waiting > 0:
-            await led('serial') 
-            letter = serial.read().decode('utf-8')
-            await send(letter)
-            await play(encode(letter))
-            await led('serialOFF')
+    if serial is not None:
+	if serial.connected:
+		if serial.in_waiting > 0:
+		    await led('serial') 
+		    letter = serial.read().decode('utf-8')
+		    await send(letter)
+		    await play(encode(letter))
+		    await led('serialOFF')
 
 # decode iambic b paddles
 class Iambic:
