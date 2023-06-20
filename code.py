@@ -39,14 +39,6 @@ import digitalio
 import pwmio
 from digitalio import DigitalInOut, Direction, Pull
 import usb_cdc
-import usb_hid
-from adafruit_hid.keyboard import Keyboard
-from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS
-from adafruit_hid.keycode import Keycode
-import usb_midi
-import adafruit_midi
-from adafruit_midi.note_off import NoteOff
-from adafruit_midi.note_on import NoteOn
 import config
 import asyncio
 
@@ -76,8 +68,18 @@ ON = 2**15
 
 
 # setup midi
-midi = adafruit_midi.MIDI(
-        midi_in=usb_midi.ports[0], in_channel=0, midi_out=usb_midi.ports[1], out_channel=0 )
+hasMidi = False
+midi = None
+if config.enableMidi is True:
+	import usb_midi
+	import adafruit_midi
+	from adafruit_midi.note_off import NoteOff
+	from adafruit_midi.note_on import NoteOn
+
+	if len(usb_midi.ports) is not 0:
+		midi = adafruit_midi.MIDI(
+			midi_in=usb_midi.ports[0], in_channel=0, midi_out=usb_midi.ports[1], out_channel=0 )
+		hasMidi = True
 
 # leds
 pwrLED = digitalio.DigitalInOut(board.GP3)
@@ -141,15 +143,19 @@ pttBTN.pull = Pull.UP
 
 # keyboard mode
 if pttBTN.value is False:
-    KEYBOARD=True
+	KEYBOARD=True
+	import usb_hid
+	from adafruit_hid.keyboard import Keyboard
+	from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS
+	from adafruit_hid.keycode import Keycode
+	# setup keyboard output
+	time.sleep(1)  
+	keyboard = Keyboard(usb_hid.devices)
+	keyboard_layout = KeyboardLayoutUS(keyboard)
 
 # setup usb serial
 serial = usb_cdc.data
 
-# setup keyboard output
-time.sleep(1)  
-keyboard = Keyboard(usb_hid.devices)
-keyboard_layout = KeyboardLayoutUS(keyboard)
 
 # setup encode and decode
 encodings = {}
@@ -204,14 +210,16 @@ MAP('.......','#') # error
 async def cw(on):
     if on:
         # key.value = True
-        midi.send(NoteOn(65,0))
+        if hasMidi:
+		midi.send(NoteOn(65,0))
         if SIDETONE:
            buzzer.duty_cycle = ON
            lineout.duty_cycle = ON
            cwOUT.value = False
     else:
         # key.value = False
-        midi.send(NoteOff(65,0))
+        if hasMidi:
+		midi.send(NoteOff(65,0))
         buzzer.duty_cycle = OFF
         lineout.duty_cycle = OFF
         cwOUT.value = True
@@ -221,10 +229,12 @@ async def ptt(on):
     if on:
         await led('pwrOFF')
         await led('dit')
-        midi.send(NoteOn(66,0))
+        if hasMidi:
+		midi.send(NoteOn(66,0))
         await asyncio.sleep(.15)  
         await led('dah')
-        midi.send(NoteOff(66,0))
+        if hasMidi:
+		midi.send(NoteOff(66,0))
         await asyncio.sleep(.15)  
         await led('pwr')
         await asyncio.sleep(.15)  
