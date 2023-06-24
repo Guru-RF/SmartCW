@@ -61,7 +61,7 @@ lineout.frequency = SIDEFREQ
 # setup CW out
 cwOUT = digitalio.DigitalInOut(board.GP14)
 cwOUT.direction = digitalio.Direction.OUTPUT
-cwOUT.value = False
+cwOUT.value = True
 
 OFF = 0
 ON = 2**15
@@ -211,18 +211,18 @@ async def cw(on):
     if on:
         # key.value = True
         if hasMidi:
-		midi.send(NoteOn(65,0))
+            midi.send(NoteOn(65,0))
         if SIDETONE:
            buzzer.duty_cycle = ON
            lineout.duty_cycle = ON
-           cwOUT.value = False
+           cwOUT.value = True
     else:
         # key.value = False
         if hasMidi:
-		midi.send(NoteOff(65,0))
+            midi.send(NoteOff(65,0))
         buzzer.duty_cycle = OFF
         lineout.duty_cycle = OFF
-        cwOUT.value = True
+        cwOUT.value = False
 
 # ptt on/off    
 async def ptt(on):
@@ -230,11 +230,11 @@ async def ptt(on):
         await led('pwrOFF')
         await led('dit')
         if hasMidi:
-		midi.send(NoteOn(66,0))
+            midi.send(NoteOn(66,0))
         await asyncio.sleep(.15)  
         await led('dah')
         if hasMidi:
-		midi.send(NoteOff(66,0))
+            midi.send(NoteOff(66,0))
         await asyncio.sleep(.15)  
         await led('pwr')
         await asyncio.sleep(.15)  
@@ -256,8 +256,8 @@ def dit_time():
 async def send(c):
 #   print(c,end='')
     if serial is not None:
-	    if serial.connected:
-	       serial.write(str.encode(c))
+        if serial.connected:
+            serial.write(str.encode(c))
     if KEYBOARD:
         keyboard_layout.write(c)
         
@@ -287,13 +287,13 @@ async def buttons():
 # receive, send, and play keystrokes from computer
 async def serials():
     if serial is not None:
-	if serial.connected:
-		if serial.in_waiting > 0:
-		    await led('serial') 
-		    letter = serial.read().decode('utf-8')
-		    await send(letter)
-		    await play(encode(letter))
-		    await led('serialOFF')
+        if serial.connected:
+            if serial.in_waiting > 0:
+                await led('serial') 
+                letter = serial.read().decode('utf-8')
+                await send(letter)
+                await play(encode(letter))
+                await led('serialOFF')
 
 # decode iambic b paddles
 class Iambic:
