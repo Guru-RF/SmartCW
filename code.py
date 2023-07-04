@@ -61,7 +61,10 @@ lineout.frequency = SIDEFREQ
 # setup CW out
 cwOUT = digitalio.DigitalInOut(board.GP14)
 cwOUT.direction = digitalio.Direction.OUTPUT
-cwOUT.value = True
+if config.CWOUT.lower() == "straight":
+    cwOUT.value = True
+else: 
+    cwOUT.value = False
 
 OFF = 0
 ON = 2**15
@@ -222,7 +225,8 @@ async def cw(on):
             midi.send(NoteOff(65,0))
         buzzer.duty_cycle = OFF
         lineout.duty_cycle = OFF
-        cwOUT.value = False
+        if config.CWOUT.lower() == "straight":
+            cwOUT.value = False
 
 # ptt on/off    
 async def ptt(on):
