@@ -62,9 +62,9 @@ lineout.frequency = SIDEFREQ
 cwOUT = digitalio.DigitalInOut(board.GP14)
 cwOUT.direction = digitalio.Direction.OUTPUT
 if config.CWOUT.lower() == "straight":
-    cwOUT.value = False
-else: 
     cwOUT.value = True
+else: 
+    cwOUT.value = False
 
 OFF = 0
 ON = 2**15
@@ -220,7 +220,7 @@ async def cw(on):
             lineout.duty_cycle = ON
             if config.CWOUT.lower() == "straight":
                 print("tt")
-                cwOUT.value = True
+                cwOUT.value = False
     else:
         # key.value = False
         if hasMidi:
@@ -229,7 +229,7 @@ async def cw(on):
         lineout.duty_cycle = OFF
         if config.CWOUT.lower() == "straight":
             print("tt")
-            cwOUT.value = False
+            cwOUT.value = True
 
 # ptt on/off    
 async def ptt(on):
