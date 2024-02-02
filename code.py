@@ -44,7 +44,6 @@ import asyncio
 
 # User config
 WPM = config.WPM
-SIDETONE = config.SIDETONE
 SIDEFREQ = config.SIDEFREQ
 
 # Vars
