@@ -1,7 +1,7 @@
-import usb_cdc
 import board
 import storage
 import supervisor
+import usb_cdc
 from digitalio import DigitalInOut, Direction, Pull
 
 supervisor.set_usb_identification("RF.Guru", "SmartCW")
@@ -16,13 +16,13 @@ dah_key.pull = Pull.UP
 
 # Disable devices only if dah/dit is not pressed.
 if dit_key.value is True and dah_key.value is True:
-    print(f"boot: button not pressed, disabling drive")
+    print("boot: button not pressed, disabling drive")
     storage.disable_usb_drive()
     storage.remount("/", readonly=False)
 
     usb_cdc.enable(console=False, data=True)
 else:
-    print(f"boot: button pressed, enable console, enabling drive")
+    print("boot: button pressed, enable console, enabling drive")
 
     usb_cdc.enable(console=True, data=True)
 
