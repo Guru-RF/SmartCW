@@ -39,8 +39,19 @@ import board
 import config
 import digitalio
 import pwmio
+import supervisor
 import usb_cdc
 from digitalio import DigitalInOut, Direction, Pull
+from microcontroller import watchdog as w
+from watchdog import WatchDogMode
+
+# stop autoreloading
+supervisor.runtime.autoreload = False
+
+# configure watchdog
+w.timeout = 2
+w.mode = WatchDogMode.RESET
+w.feed()
 
 # User config
 WPM = config.WPM
@@ -459,9 +470,10 @@ class Iambic:
                     self.set_state(self.SPACE)
 
 
-async def iambic_runner(iambic):
+async def iambic_runner(iambic, w):
     print("Iambic task")
     while True:
+        w.feed()
         await iambic.cycle()
         await asyncio.sleep(0)
 
@@ -482,7 +494,7 @@ async def serials_runner():
 
 async def main():  # Don't forget the async!
     iambic = Iambic(dit_key, dah_key)
-    iambic_task = asyncio.create_task(iambic_runner(iambic))
+    iambic_task = asyncio.create_task(iambic_runner(iambic, w))
     serials_task = asyncio.create_task(serials_runner())
     buttons_task = asyncio.create_task(buttons_runner())
     await asyncio.gather(iambic_task, serials_task, buttons_task)

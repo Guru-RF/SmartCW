@@ -6,6 +6,8 @@ from digitalio import DigitalInOut, Direction, Pull
 
 supervisor.set_usb_identification("RF.Guru", "SmartCW")
 
+supervisor.runtime.autoreload = False
+
 # setup paddle inputs
 dit_key = DigitalInOut(board.GP13)
 dit_key.direction = Direction.INPUT
