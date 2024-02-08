@@ -131,11 +131,11 @@ async def led(what):
         dahLED.value = False
     if what == "dahOFF":
         dahLED.value = True
-    if what == "serial":
+    if what == "ptt":
         ditLED.value = False
         serLED.value = False
         serLED2.value = False
-    if what == "serialOFF":
+    if what == "pttOFF":
         ditLED.value = True
         serLED.value = True
         serLED2.value = True
@@ -270,11 +270,10 @@ async def ptt(on):
     await asyncio.sleep(0)
     if on:
         await led("pwrOFF")
-        await led("dit")
+        await led("ptt")
         if hasMidi:
             midi.send(NoteOn(66, 0))
         await asyncio.sleep(0.15)
-        await led("dah")
         if hasMidi:
             midi.send(NoteOff(66, 0))
         await asyncio.sleep(0.15)
@@ -282,9 +281,9 @@ async def ptt(on):
         await asyncio.sleep(0.15)
         await led("pwrOFF")
         await asyncio.sleep(0.15)
-        await led("dahOFF")
+        await led("ptt")
         await asyncio.sleep(0.15)
-        await led("ditOFF")
+        await led("pttOFF")
         await asyncio.sleep(0.15)
         await led("pwr")
 
@@ -331,14 +330,18 @@ async def send(c):
 async def play(pattern):
     for sound in pattern:
         if sound == ".":
+            await led("dit")
             await cw(True)
             await asyncio.sleep(dit_time())
             await cw(False)
+            await led("ditOFF")
             await asyncio.sleep(dit_time())
         elif sound == "-":
+            await led("dah")
             await cw(True)
             await asyncio.sleep(3 * dit_time())
             await cw(False)
+            await led("dahOFF")
             await asyncio.sleep(dit_time())
         elif sound == " ":
             await asyncio.sleep(4 * dit_time())
@@ -362,11 +365,12 @@ async def serials():
     if serial is not None:
         if serial.connected:
             if serial.in_waiting > 0:
-                await led("serial")
+                await led("pwrOFF")
                 letter = serial.read().decode("utf-8")
                 await send(letter)
                 await play(encode(letter))
-                await led("serialOFF")
+            else:
+                await led("pwr")
 
 
 # decode iambic b paddles
@@ -410,9 +414,9 @@ class Iambic:
         self.in_char = True
         self.in_word = True
         self.char += "."
+        await led("dit")
         await cw(True)
         self.set_state(self.DIT)
-        await led("dit")
 
     async def start_dah(self):
         self.dit = False
@@ -420,11 +424,13 @@ class Iambic:
         self.in_char = True
         self.in_word = True
         self.char += "-"
+        await led("dah")
         await cw(True)
         self.set_state(self.DAH)
-        await led("dah")
 
     async def cycle(self):
+        await led("ditOFF")
+        await led("dahOFF")
         await self.latch_paddles()
         if self.state == self.SPACE:
             if self.dit:
@@ -435,13 +441,9 @@ class Iambic:
                 self.in_char = False
                 await send(decode(self.char))
                 self.char = ""
-                await led("ditOFF")
-                await led("dahOFF")
             elif self.in_word and self.elapsed() > 6 * dit_time():
                 self.in_word = False
                 await send(" ")
-                await led("ditOFF")
-                await led("dahOFF")
         elif self.state == self.DIT:
             if self.elapsed() > dit_time():
                 await cw(False)
