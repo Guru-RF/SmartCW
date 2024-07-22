@@ -210,6 +210,7 @@ def MAP(pattern, letter):
     encodings[letter] = pattern
 
 
+MAP("_", " ")
 MAP(".-", "a")
 MAP("-...", "b")
 MAP("-.-.", "c")
@@ -317,7 +318,6 @@ def dit_time():
 
 # send to computer
 async def send(c):
-    #   print(c,end='')
     if serial is not None:
         if serial.connected:
             serial.write(str.encode(c))
@@ -343,7 +343,7 @@ async def play(pattern):
             await cw(False)
             await led("dahOFF")
             await asyncio.sleep(dit_time())
-        elif sound == " ":
+        else:
             await asyncio.sleep(4 * dit_time())
     await asyncio.sleep(2 * dit_time())
 
@@ -366,9 +366,13 @@ async def serials():
         if serial.connected:
             if serial.in_waiting > 0:
                 await led("pwrOFF")
-                letter = serial.read().decode("utf-8")
-                await send(letter)
-                await play(encode(letter))
+                raw = serial.in_waiting
+                while raw:
+                    letters = serial.read(raw).decode("utf-8")
+                    for char in letters:
+                        await send(char)
+                        await play(encode(char))
+                    raw = serial.in_waiting
             else:
                 await led("pwr")
 
