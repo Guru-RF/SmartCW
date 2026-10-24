@@ -1,0 +1,102 @@
+# --- PlatformIO ---
+.pio/
+.pioenvs/
+.piolibdeps/
+.clang_complete
+.gcc-flags.json
+
+# --- VSCode ---
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch/
+.vscode/.ropeproject/
+.history/
+
+# --- JetBrains / CLion ---
+.idea/
+cmake-build-*/
+*.iml
+
+# --- Visual Studio ---
+.vs/
+
+# --- Python (PlatformIO build scripts etc.) ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+
+# --- Node (future web tooling, just in case) ---
+node_modules/
+
+# --- macOS ---
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.apdisk
+.AppleDouble
+.LSOverride
+
+# --- Windows ---
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# --- Linux ---
+*~
+.Trash-*
+.directory
+
+# --- Compiled firmware / build artifacts (CI publishes these on releases) ---
+*.uf2
+# ...except the upstream RP2040 flash-wipe helper, which ships alongside firmware in releases
+!flash_nuke.uf2
+*.elf
+*.bin
+*.hex
+*.map
+*.o
+*.a
+*.so
+
+# --- Editor swap / backup ---
+*.swp
+*.swo
+*.swn
+*.bak
+*.orig
+*.rej
+*.tmp
+*.log
+
+# --- Secrets / local config ---
+.env
+.env.*
+!.env.example
+secrets.*
+!secrets.example.*
+
+# --- Claude Code local agent settings (keep team settings.json, ignore personal) ---
+.claude/settings.local.json
+.claude/cache/
+
+# --- CI / test caches ---
+.coverage
+coverage/
+htmlcov/
+.pytest_cache/
+
+# --- OS / misc ---
+*.pid
+.DS_Store?
+
+# generated from web/ by tools/build_web.py
+src/web_assets.h

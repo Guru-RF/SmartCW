@@ -1,0 +1,70 @@
+name: Build firmware
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  release:
+    types: [created, published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio/.cache
+            ~/.cache/pip
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install platformio
+
+      - name: Build firmware
+        run: pio run -e pico
+
+      - name: Stage UF2
+        id: stage
+        run: |
+          set -e
+          SRC=.pio/build/pico/firmware.uf2
+          test -f "$SRC"
+          if [ -n "${GITHUB_REF_NAME}" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            OUT="smartcw-${GITHUB_REF_NAME}.uf2"
+          else
+            OUT="smartcw-${GITHUB_SHA::7}.uf2"
+          fi
+          cp "$SRC" "$OUT"
+          echo "uf2=$OUT" >> "$GITHUB_OUTPUT"
+          ls -la "$OUT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.stage.outputs.uf2 }}
+          path: ${{ steps.stage.outputs.uf2 }}
+
+      - name: Attach UF2 to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ steps.stage.outputs.uf2 }}
+            flash_nuke.uf2

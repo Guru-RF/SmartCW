@@ -1,0 +1,222 @@
+# SmartCW – Interoperability
+
+How SmartCW talks to the computer: USB MIDI, USB keyboard, the serial and TCP text protocol, and the web API. For the hardware, the settings and building see [README.md](README.md).
+
+SmartCW is a composite USB device (VID `0x1209`, PID `0xFF42`, product string `SmartCW`, manufacturer `RF.Guru`). Which interfaces it presents depends on `config.txt` and on what is held while plugging in:
+
+| Interface | When present |
+| --- | --- |
+| USB serial (CDC-ACM) | always |
+| USB MIDI | `midi: true` (default) |
+| USB Ethernet (CDC-NCM) | `network: true` (default) |
+| USB HID keyboard | `keyboard: true`, or PTT held while plugging in; the PID becomes `0xFF43` |
+| USB mass storage | both paddles held while plugging in, or the `!drive` command |
+
+All interfaces are registered right after power-up, before the host has finished enumerating, so the computer normally sees the complete device once. Changing `midi`, `keyboard`, `network`, `ip` or `tcpPort` needs a restart.
+
+---
+
+## 🌐 USB network
+
+SmartCW is a CDC-NCM network adapter, supported natively by Linux, macOS and Windows 10/11 (no driver, no Internet Connection Sharing).
+
+| | |
+| --- | --- |
+| SmartCW's address | `192.168.7.1` (setting `ip`), netmask `255.255.255.0` |
+| Your computer | gets `192.168.7.16`–`.23` from SmartCW's DHCP server; or set a static address in the same /24 |
+| Gateway, DNS | none are handed out, so the computer keeps its own default route and name servers |
+| Name | `smartcw.local` over mDNS: A (192.168.7.1) and AAAA (SmartCW's IPv6 link-local address), so lookups never wait for a missing IPv6 answer |
+| DNS-SD | `SmartCW._http._tcp.local` (port 80, TXT `path=/`, `version=`) and `SmartCW._telnet._tcp.local` (the TCP port) |
+| IPv6 | link-local only (`fe80::…`, from the MAC address); the web server and the TCP port answer on it too |
+| Web interface and API | `http://192.168.7.1/`, port 80 |
+| Text protocol | TCP port 23 (setting `tcpPort`) |
+
+lwIP is built with ten TCP connections. The web server handles six at once, up to three of them live event streams (one per open browser tab); the TCP port accepts two clients.
+
+---
+
+## 🎹 MIDI
+
+SmartCW presents one USB MIDI port named **SmartCW** (on Linux ALSA lists it as `SmartCW virtual-cable`). Everything is sent on **MIDI channel 1** with velocity 127 (status `0x90` / `0x80`). Incoming MIDI is ignored.
+
+### Events
+
+| Source | Note on | Note off |
+| --- | --- | --- |
+| Keyer element or text, `midiMode: keyed` | `midiCwNote` (default **65**) | when the element ends |
+| Straight key closed, `midiMode: keyed` | `midiStraightNote` (default **64**) | when the key opens |
+| Dit paddle contact, `midiMode: paddles` | `midiDitNote` (default **67**) | when the paddle is released |
+| Dah paddle contact, `midiMode: paddles` | `midiDahNote` (default **68**) | when the paddle is released |
+| PTT button or `!ptt` | `midiPttNote` (default **66**) | 150 ms later |
+| Audio-mode PTT (`output: audio`) | `midiPttNote` (66) | after `pttTail` |
+
+**Keyed mode**: SmartCW is the keyer. The SDR receives fully timed CW, one note per dit or dah, from the paddles, the straight key, text, memories and the beacon. **Paddles mode**: the SDR is the keyer. It receives the raw paddle contacts and does the timing itself; SmartCW's own sidetone and key output keep working.
+
+Nothing is sent over MIDI while practice mode is active (`output: off`, `!practice on`, or a trainer page open in the browser).
+
+The PTT button sends a **pulse**: map it to a toggle in your software. Holding it for 1.5 s switches key type instead.
+
+### Mapping in SDR software
+
+1. Open the program's MIDI or controller settings and select the `SmartCW` input.
+2. Keyed mode: map note 65 (and 64 for a straight key) to "CW key", note 66 to "PTT toggle". If the program has one CW input only, set `midiStraightNote` equal to `midiCwNote`.
+3. Paddles mode: map note 67 to "dit paddle" and 68 to "dah paddle".
+
+### Testing on a computer
+
+```bash
+amidi -l                       # find the port, e.g. hw:3,0,0
+amidi -p hw:3,0,0 -d           # dump events, then key something
+```
+
+```text
+90 41 7F    note on 65     (a dit)
+80 41 00    note off 65
+90 42 7F    note on 66     (PTT pulse)
+80 42 00    note off 66
+```
+
+At 20 wpm the note-on time of a dit measures 60 ms, a dah 180 ms, the gap between elements 60 ms and between letters 180 ms.
+
+---
+
+## ⌨️ USB keyboard mode
+
+SmartCW also enumerates as a standard HID keyboard (US layout) and types what it **decodes from the paddles or straight key** into the window with keyboard focus:
+
+- Every decoded character is typed: lowercase letters, digits and the punctuation of the Morse table. A word gap types a space.
+- Undecodable patterns and the error signal (`........`) are not typed.
+- Text sent from the computer is keyed, but not typed back.
+- A short press on PTT types **Enter**.
+- Nothing is typed while practice mode is active.
+
+Turn it on for one session by holding PTT while plugging in, or permanently with `keyboard: true` (web: Settings → Computer, then restart). On a host with a non-US layout some punctuation may come out as a different symbol; letters and digits are unaffected.
+
+---
+
+## 🔑 Key types
+
+| `keyer` | Behaviour |
+| --- | --- |
+| `iambicA` | iambic squeeze keying, mode A: no extra element after releasing both paddles |
+| `iambicB` | iambic mode B (default): the opposite element is added after a squeeze release |
+| `ultimatic` | both paddles held: the paddle pressed last repeats |
+| `bug` | dit paddle = automatic dits, dah paddle = manual key |
+| `straight` | tip or ring closed = key down; marks follow the key exactly |
+
+The keyer decodes exactly from its own elements. The straight key and the bug's manual dahs are decoded adaptively: SmartCW tracks your dit length, so `wpm` is only the starting point. A long press (1.5 s) on PTT toggles between `straight` and the last paddle mode (one beep = keyer, two = straight) and is reported on the serial port and TCP as `!keyer ...`.
+
+---
+
+## 🔌 Serial and TCP protocol
+
+The USB serial port (`/dev/ttyACM*`, `/dev/tty.usbmodem*`, `COMx`; any baud rate, DTR asserted) and the TCP port (`nc 192.168.7.1 23`, `telnet 192.168.7.1`) speak the same protocol. Telnet option negotiation is ignored.
+
+### Data stream
+
+- **To SmartCW**: every printable character is keyed as CW. Line breaks and tabs become word spaces. `<SK>`, `<KN>`, `<AR>`, `<BT>`, `<AS>`, `<BK>`, `<HH>` send prosigns; any other `<XYZ>` sends the letters run together.
+- **From SmartCW**: each character is echoed when it is actually keyed (lowercase); whatever is keyed on the paddles comes back decoded, `¿` for an unknown pattern, a space after a word gap.
+
+Prosigns travel as single stand-in characters in both directions:
+
+| Prosign | `<AR>` | `<KN>` | `<SK>` | `<BT>` | `<AS>` | `<BK>` | `<SN>` | `<HH>` (error) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Character | `+` | `(` | `\|` | `=` | `&` | `^` | `*` | `#` |
+
+### Commands
+
+A line starting with `!` is a command, ended by CR or LF. Every response line starts with `!`; errors are `!err <message>`.
+
+| Command | Response / effect |
+| --- | --- |
+| `!help` | the command list |
+| `!status` | settings, USB and network in words; after an unexpected restart also `!last crash: ...` |
+| `!state` | `!state {...}`: the same JSON as `GET /api/state` |
+| `!get` | `!<setting> <value>` for every setting |
+| `!get <setting>`, `!<setting>` | one setting |
+| `!set <setting> <value>`, `!<setting> <value>` | change a setting, e.g. `!wpm 22`, `!keyer iambicA`, `!output audio`, `!mem1 CQ TEST {call}` |
+| `!send <text>` | send text (same as typing it) |
+| `!mem <1..6>` | send a memory |
+| `!beacon on/off` | repeat `beaconText` every `beaconEvery` seconds |
+| `!tune [1..20 / off]` | key down to tune, default 5 s |
+| `!practice on/off` | no TX for 10 minutes, or until off |
+| `!ptt` | MIDI PTT pulse (Enter in keyboard mode) |
+| `!stop` | abort text, tune and beacon |
+| `!save` | write `config.txt` now; changes are also saved by themselves 2 s after the last change |
+| `!defaults` / `!defaults all` | factory settings; without `all`, call, name, memories and beacon text are kept |
+| `!net` / `!net tcp` | web address, TCP port, clients; `tcp` lists every TCP connection |
+| `!perf` | the longest main-loop stalls (µs) since the last `!perf` |
+| `!drive` | expose `config.txt` as a USB drive now (USB re-enumerates) |
+| `!reboot` | restart |
+| `!bootloader` | restart into the UF2 bootloader |
+
+The boot banner, sent about 1.5 s after power-up, starts with `!SmartCW 2.1.0 ready` and ends with `!type text to send CW, !help for commands`. A TCP client gets a one-line greeting.
+
+### Minimal client (Python)
+
+```python
+import socket
+s = socket.create_connection(("192.168.7.1", 23))
+s.sendall(b"!wpm 22\ncq cq de on6ure k\n")
+while True:
+    print(s.recv(256).decode("utf-8", "replace"), end="", flush=True)
+```
+
+For the serial port use `serial.Serial("/dev/ttyACM0", 115200)` from pyserial the same way.
+
+---
+
+## 🧩 Web API
+
+Plain HTTP on port 80. Requests are `GET` or `POST` with url-encoded form fields; responses are JSON unless noted. CORS is open (`Access-Control-Allow-Origin: *`), so your own pages can use the API.
+
+| Request | Fields | Effect / response |
+| --- | --- | --- |
+| `GET /api/state` | | `{"v", "up", "cfg": {every setting}, "rt": {"midi", "kbd", "drive", "ip", "beacon", "practice", "busy", "tune", "restart", "dirty", "web", "tcp"}}` |
+| `GET /api/meta` | | every setting: key, type, section, help, min/max, default, options, restart flag |
+| `POST /api/set` | `setting=value&...` | changes settings; `{"ok", "err": {setting: message}, "restart"}`; valid fields apply even when others fail |
+| `POST /api/defaults` | `scope=all` (optional) | factory settings; returns the new state |
+| `POST /api/send` | `text`, `p` = `tx` (default), `practice` or `train`, `wpm`, `eff` | queue text; `practice` and `train` are never transmitted, `train` uses the trainer speed and tone, or `wpm`/`eff` when given |
+| `POST /api/stop` | | abort text, tune and beacon |
+| `POST /api/mem` | `n` = 1..6, `p` | send a memory |
+| `POST /api/beacon` | `on` = 1/0 | beacon on or off |
+| `POST /api/tune` | `ms` (0 stops, max 20000) | key down to tune |
+| `POST /api/practice` | `ms` (default 8000, max 600000) or `on=0` | hold practice mode; the trainer pages refresh this every 4 s |
+| `POST /api/ptt`, `POST /api/beep` | `n` for beeps | PTT pulse; sidetone beeps |
+| `POST /api/cmd` | `line` = a `!` command | the command's response as text |
+| `GET /config.txt` | | the configuration file (download) |
+| `POST /config.txt` | the file as the body | restore all settings from it; returns the new state |
+| `POST /api/restart`, `POST /api/bootloader` | | restart, or restart into the UF2 bootloader |
+
+### Live events
+
+`GET /api/events` is a Server-Sent Events stream (`EventSource` in a browser). Every message is one JSON object, `e` is its type:
+
+| `e` | Fields | Meaning |
+| --- | --- | --- |
+| `state` | `s` = same as `/api/state` | sent on connect and after every change |
+| `k` | `d` = 1/0, `f` = flags (1 TX, 2 straight key, 4 text player, 8 tune) | key down / up |
+| `el` | `v` = `.` or `-`, `m` = mark ms, `g` = gap before it in ms | an element keyed on the paddles or key |
+| `rx` | `c` = character, `" "` word gap, `""` unknown | a character decoded from the paddles or key |
+| `tx` | `c` = character, `p` = profile (0 tx, 1 train, 2 practice) | the text player starts a character |
+| `done` | | the text player ran out of text |
+| `abort` | | a paddle interrupted text or the beacon |
+| `ptt` | `d` = 1/0 | audio-mode PTT |
+| `pulse` | | PTT button pulse |
+
+```js
+const es = new EventSource("http://192.168.7.1/api/events");
+es.onmessage = (m) => {
+  const ev = JSON.parse(m.data);
+  if (ev.e === "rx") console.log("decoded", ev.c);
+};
+fetch("http://192.168.7.1/api/send", { method: "POST", body: new URLSearchParams({ text: "cq test" }) });
+```
+
+---
+
+## 💾 Mass storage
+
+Hold both paddles while plugging in (or send `!drive`) and SmartCW also appears as a USB drive labelled `SMARTCW` with `config.txt`. Edit, save and **eject**: the eject (SCSI stop/eject) makes SmartCW reboot and load the file. A plain `umount` on Linux does not send it; re-plug or send `!reboot` instead. While the drive is exposed SmartCW does not write `config.txt` itself: settings changed from the web page or with commands in the meantime are not saved, and the file on the drive wins at the next start.
+
+Replacing the whole file with the single word `firmwareupdate` restarts SmartCW into the UF2 bootloader on the next boot.

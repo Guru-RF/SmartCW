@@ -1,0 +1,98 @@
+/* Settings page: every setting, applied immediately and saved by SmartCW. */
+"use strict";
+
+Pages.settings = (() => {
+  let built = false;
+  let savedChip;
+
+  function build() {
+    const sec = $("#p-settings");
+    savedChip = h("span.status", h("span.dot"), "Saved");
+    const restartNote = h("small.rnote", " restart");
+    const rn = () => restartNote.cloneNode(true);
+
+    const memRows = [];
+    for (let i = 1; i <= 6; i++) {
+      memRows.push(h("div.memrow", h("b", "M" + i), textInput("mem" + i, { maxlength: 71, placeholder: "empty" }),
+        h("button.sm", { type: "button", "aria-label": "play memory " + i, onclick: () => post("/api/mem", { n: i, p: "practice" }) }, icon("play"))));
+    }
+
+    sec.append(
+      h("div.page-head", h("h2", icon("sliders"), "Settings"),
+        h("p.sub", "Changes apply at once and SmartCW saves them to config.txt a moment later. Settings marked restart change the USB layout and take effect after a restart.")),
+      h("div.actions.top", savedChip,
+        h("button", { type: "button", onclick: resetDefaults }, icon("sync"), "Reset to defaults")),
+      h("div.cols",
+        h("div",
+          card("key", "Keyer", "Key type, speed and the feel of the paddles",
+            row("Key type", "a long press on the PTT button toggles straight",
+              segmented("keyer", ["iambicA", "iambicB", "ultimatic", "bug", "straight"], ["Iambic A", "Iambic B", "Ultimatic", "Bug", "Straight"]), true),
+            row("Speed", "words per minute (PARIS)", rangeInput("wpm", " wpm")),
+            row("Weight", "50 % is standard, more makes marks heavier", rangeInput("weight", " %")),
+            row("Dah ratio", "dah length in dits, 3.0 is standard", rangeInput("ratio", "", (v) => (v / 10).toFixed(1))),
+            row("Swap paddles", "for left-handed operators", switchInput("paddleSwap")),
+            row("Autospace", "iambic: a pause always becomes a full letter space", switchInput("autoSpace"))),
+          card("speaker", "Sidetone", "Buzzer and line out",
+            row("Tone", "sidetone pitch", h("div.inl", rangeInput("tone", " Hz", null, 10),
+              h("button.sm", { type: "button", onclick: () => post("/api/beep", { n: 1 }) }, "Test"))),
+            row("Buzzer", "the piezo in SmartCW", switchInput("buzzer")),
+            row("Buzzer level", "1 to 10", rangeInput("volume")),
+            row("Line out level", "1 to 10, for headphones or the radio's input", rangeInput("lineLevel"))),
+          card("antenna", "Transmit output", "What the output jack does with transmitted CW",
+            row("Output", "", segmented("output", ["key", "audio", "off"], ["Key line", "Audio + PTT", "Practice"])),
+            h("p.hint", "Key line: the jack keys your radio like a straight key. Audio + PTT: the jack is PTT and the CW tone goes out on line out, for FM, SSB or a data input. Practice: nothing is transmitted."),
+            row("PTT lead", "audio mode: time between PTT and the first tone", rangeInput("pttLead", " ms", null, 10)),
+            row("PTT tail", "audio mode: PTT stays on this long after the last tone", rangeInput("pttTail", " ms", null, 50))),
+          card("cw", "Text sending", "Text from the browser, TCP, serial and memories",
+            row("Farnsworth", "extra space between letters at this effective speed; off = normal spacing",
+              rangeInput("farnsworth", "", (v) => (v ? v + " wpm" : "off")))),
+          card("school", "Trainer", "Speed and pitch for the trainer pages",
+            row("Character speed", "how fast each letter sounds", rangeInput("trainWpm", " wpm")),
+            row("Effective speed", "Farnsworth spacing for the trainer; off = normal spacing", rangeInput("trainEff", "", (v) => (v ? v + " wpm" : "off"))),
+            row("Trainer tone", "0 = the same as the sidetone", rangeInput("trainTone", "", (v) => (v ? v + " Hz" : "same"), 10)))),
+        h("div",
+          card("user", "Station", "Used in memories as {call} and {name}, and by the trainer",
+            row("Callsign", "", textInput("call", { maxlength: 15, placeholder: "ON6URE", style: { textTransform: "uppercase" } })),
+            row("Name", "", textInput("name", { maxlength: 19, placeholder: "your name" }))),
+          card("list", "Memories", "Send them from the Live page, TCP or serial (!mem 1). {call}, {name}, <SK> <KN> <AR> <BT> work.",
+            ...memRows),
+          card("beacon", "Beacon", "Repeats a message, e.g. for antenna tests or fox hunts",
+            row("Message", "", textInput("beaconText", { maxlength: 71 })),
+            row("Every", "seconds between transmissions", rangeInput("beaconEvery", " s", null, 5))),
+          card("music", "USB MIDI", "For SDR software that keys CW from MIDI notes",
+            row(["MIDI port", rn()], "", switchInput("midi")),
+            row("MIDI mode", "keyed: the keyer's output as one note; paddles: the raw paddle contacts, the SDR keys",
+              segmented("midiMode", ["keyed", "paddles"], ["Keyed", "Paddles"])),
+            h("div.notes",
+              h("label", "CW note", numInput("midiCwNote")),
+              h("label", "Straight key", numInput("midiStraightNote")),
+              h("label", "PTT", numInput("midiPttNote")),
+              h("label", "Dit contact", numInput("midiDitNote")),
+              h("label", "Dah contact", numInput("midiDahNote")))),
+          card("keyboard", "Computer", "Type into any program by keying",
+            row(["Keyboard typing", rn()], "decoded CW is typed as USB keystrokes, PTT = Enter", switchInput("keyboard"))),
+          card("network", "USB network", "This web page and the TCP port, over the USB cable",
+            row(["USB Ethernet", rn()], "turning it off removes this web interface", switchInput("network")),
+            row(["Address", rn()], "your computer gets an address next to it automatically", textInput("ip", { maxlength: 15, inputmode: "decimal" })),
+            row(["TCP port", rn()], "text and command protocol, like the serial port", numInput("tcpPort"))))));
+
+    Bus.on("saved", () => flashSaved());
+    Bus.on("state", () => {
+      savedChip.classList.toggle("form-unsaved", !!App.rt.dirty);
+      savedChip.lastChild.textContent = App.rt.dirty ? "Saving…" : "Saved";
+    });
+  }
+
+  function flashSaved() {
+    savedChip.classList.add("pulse");
+    setTimeout(() => savedChip.classList.remove("pulse"), 600);
+  }
+
+  async function resetDefaults() {
+    if (!confirm("Reset all settings to their defaults? Your callsign, name, memories and beacon text are kept.")) return;
+    const r = await post("/api/defaults", {});
+    if (r && r.cfg) { Settings.pending = {}; applyState(r); toast("Defaults restored", "ok"); }
+  }
+
+  return { show() { if (!built) { build(); built = true; } } };
+})();
