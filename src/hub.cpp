@@ -160,6 +160,15 @@ void hubTick() {
   if (engineEventsLost())
     webStateDirty();
 
+  // Settings are saved a moment after the last change: tell the browsers,
+  // so "Saving..." turns into "Saved".
+  static bool wasDirty = false;
+  bool dirty = configDirty();
+  if (dirty != wasDirty) {
+    wasDirty = dirty;
+    webStateDirty();
+  }
+
   unsigned long now = millis();
   if (pttNoteOn && (long)(now - pttNoteOffAt) >= 0) {
     usbMidiNote((uint8_t)config.midiPttNote, false);

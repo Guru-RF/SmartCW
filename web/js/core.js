@@ -115,6 +115,10 @@ const Settings = {
       }
       if (r && r.restart) App.rt.restart = true;
       refreshState();
+      // SmartCW saves about 2 s after the last change and pushes the new state;
+      // look again in case that push was missed.
+      clearTimeout(this.recheck);
+      this.recheck = setTimeout(refreshState, 3500);
     } catch (e) {
       toast("Could not reach SmartCW", "err");
     }
