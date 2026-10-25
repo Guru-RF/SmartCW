@@ -3,6 +3,7 @@
 #include "crash.h"
 #include "engine.h"
 #include "hub.h"
+#include "ident.h"
 #include "net.h"
 #include "output.h"
 #include "pins.h"
@@ -20,6 +21,7 @@ void cliHelp(Print &o) {
   o.println(F("!SmartCW " SMARTCW_VERSION " - type text to send CW, '!' prefixes a command"));
   o.println(F("!  !help                 this list"));
   o.println(F("!  !status               settings, USB and network in words"));
+  o.println(F("!  !id [set <serial>|clear] RF.Guru serial number (also the USB serial number)"));
   o.println(F("!  !state                everything as one JSON line"));
   o.println(F("!  !get [setting]        show one or all settings"));
   o.println(F("!  !<setting> [value]    show or change a setting, e.g. !wpm 22, !tone 650"));
@@ -37,6 +39,8 @@ void cliHelp(Print &o) {
   o.println(F("!  !defaults [all]       factory settings; 'all' also clears call, memories"));
   o.println(F("!  !net                  web address, TCP port, clients"));
   o.println(F("!  !drive                expose config.txt as a USB drive now"));
+  o.println(F("!  !inputs               raw paddle and PTT contacts, 1 = closed"));
+  o.println(F("!  !selftest             each LED in turn and a beep, then !selftest done"));
   o.println(F("!  !reboot               software reset"));
   o.println(F("!  !bootloader           reboot into the UF2 bootloader for a firmware update"));
 }
@@ -44,6 +48,10 @@ void cliHelp(Print &o) {
 static void status(Print &o) {
   o.print(F("!version "));
   o.println(F(SMARTCW_VERSION));
+  o.print(F("!id "));
+  o.print(identSerial()[0] ? identSerial() : "none");
+  o.print(F(", chip "));
+  o.println(identChip());
   o.print(F("!keyer "));
   o.print(cfgEnumName(cfgFind("keyer"), config.keyer));
   o.print(F(", wpm "));
@@ -168,6 +176,35 @@ void cliExec(const char *lineIn, Print &o) {
     status(o);
   } else if (!strcasecmp(head, "version")) {
     o.println(F("!version " SMARTCW_VERSION));
+  } else if (!strcasecmp(head, "id")) {
+    if (!strncasecmp(arg, "set ", 4)) {
+      const char *v = arg + 4;
+      while (*v == ' ')
+        v++;
+      if (const char *err = identSet(v)) {
+        o.print(F("!err id "));
+        o.println(err);
+        return;
+      }
+      hubStateChanged();
+    } else if (argLower == "clear") {
+      if (!identClear()) {
+        o.println(F("!err id flash write failed"));
+        return;
+      }
+      hubStateChanged();
+    } else if (*arg) {
+      o.println(F("!err id, id set <serial>, id clear"));
+      return;
+    }
+    o.print(F("!id "));
+    o.println(identSerial()[0] ? identSerial() : "none");
+  } else if (!strcasecmp(head, "inputs")) {
+    // the pins as wired, before paddleSwap
+    o.printf("!inputs dit %d dah %d ptt %d\n", digitalRead(PIN_DIT) == LOW, digitalRead(PIN_DAH) == LOW,
+             digitalRead(PIN_PTT) == LOW);
+  } else if (!strcasecmp(head, "selftest")) {
+    hubSelfTest();
   } else if (!strcasecmp(head, "state")) {
     String s;
     webStateJson(s);
@@ -291,6 +328,8 @@ void cliExec(const char *lineIn, Print &o) {
     rp2040.reboot();
   } else if (!strcasecmp(head, "bootloader")) {
     o.println(F("!rebooting into UF2 bootloader"));
+    if (configDirty() && !usbDriveActive()) // a change from the last 2 s survives the update
+      configSave();
     Serial.flush();
     delay(150);
     rp2040.rebootToBootloader();

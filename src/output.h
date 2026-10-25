@@ -17,4 +17,6 @@ void outBeep(bool on); // sidetone only, ignored while the key is down
 void outTick(uint32_t now);
 void outAllOff();
 bool outPttActive();
+// Self test: the buzzer sounds for beeps even when it is turned off.
+void outForceBuzzer(bool on);
 bool outKeyIsDown();

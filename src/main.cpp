@@ -14,6 +14,7 @@
 #include "cwd.h"
 #include "engine.h"
 #include "hub.h"
+#include "ident.h"
 #include "leds.h"
 #include "net.h"
 #include "pins.h"
@@ -24,6 +25,7 @@
 
 void setup() {
   crashBegin();
+  identBegin(); // the USB serial number, before Serial.begin() enumerates
   pinMode(PIN_DIT, INPUT_PULLUP);
   pinMode(PIN_DAH, INPUT_PULLUP);
   pinMode(PIN_PTT, INPUT_PULLUP);

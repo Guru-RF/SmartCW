@@ -4,6 +4,7 @@
 #include "engine.h"
 #include "leds.h"
 #include "net.h"
+#include "output.h"
 #include "ptt.h"
 #include "usbio.h"
 #include "web.h"
@@ -70,6 +71,46 @@ void hubPttPulse() {
   pttNoteOffAt = millis() + 150;
   ledsPttFlash();
   webEvent("{\"e\":\"pulse\"}");
+}
+
+// ---------------- self test ----------------
+static int selfStep = -1; // -1 = not running
+static unsigned long selfAt = 0;
+
+void hubSelfTest() {
+  selfStep = 0;
+  selfAt = millis();
+}
+
+static void selfTestTick() {
+  if (selfStep < 0 || (long)(millis() - selfAt) < 0)
+    return;
+  // 0..4: PWR, DIT, DAH, SER, SER2 alone for 250 ms each; 5: all on and a
+  // beep; 6: back to normal and report.
+  static void (*const leds[5])(bool) = {ledPwr, ledDit, ledDah, ledSer, ledSer2};
+  if (selfStep < 5) {
+    for (int i = 0; i < 5; i++)
+      leds[i](i == selfStep);
+    selfAt = millis() + 250;
+  } else if (selfStep == 5) {
+    for (auto led : leds)
+      led(true);
+    outForceBuzzer(true);
+    engineBeep(1);
+    selfAt = millis() + 500;
+  } else {
+    outForceBuzzer(false);
+    bool sending = enginePlayerBusy();
+    ledPwr(!sending);
+    ledDit(false);
+    ledDah(false);
+    ledSer(sending);
+    ledSer2(outPttActive());
+    selfStep = -1;
+    hubStream("!selftest done\n");
+    return;
+  }
+  selfStep++;
 }
 
 // JSON string body for one character (no quotes)
@@ -215,6 +256,7 @@ void hubTick() {
   }
 
   syncPaddles(); // output, MIDI mode or practice may have changed
+  selfTestTick();
 
   unsigned long now = millis();
   if (pttNoteOn && (long)(now - pttNoteOffAt) >= 0) {

@@ -3,6 +3,7 @@
 #include "config.h"
 #include "engine.h"
 #include "hub.h"
+#include "ident.h"
 #include "net.h"
 #include "pins.h"
 #include "usbio.h"
@@ -170,7 +171,11 @@ static void fail(Slot &s, int code, const char *msg) {
 
 void webStateJson(String &out) {
   out.reserve(2600);
-  out += "{\"v\":\"" SMARTCW_VERSION "\",\"up\":";
+  out += "{\"v\":\"" SMARTCW_VERSION "\",\"id\":\"";
+  out += identSerial();
+  out += "\",\"chip\":\"";
+  out += identChip();
+  out += "\",\"up\":";
   out += String(millis() / 1000);
   out += ",\"cfg\":";
   configJsonValues(out);

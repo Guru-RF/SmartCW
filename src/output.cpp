@@ -8,6 +8,7 @@
 
 static const uint16_t WRAP = 4095;
 static volatile bool cfgChanged = true;
+static volatile bool forceBuzzer = false;
 static int curTone = 0;
 static int curOutput = OUT_KEY;
 
@@ -56,7 +57,7 @@ static void setLevel(int pin, bool on, int level) {
 }
 
 static void applySound() {
-  setLevel(PIN_BUZZER, sideOn && config.buzzer, config.volume);
+  setLevel(PIN_BUZZER, sideOn && (config.buzzer || forceBuzzer), config.volume);
   bool line = (curOutput == OUT_AUDIO) ? lineTx : sideOn;
   setLevel(PIN_LINEOUT, line, config.lineLevel);
 }
@@ -168,4 +169,5 @@ void outTick(uint32_t now) {
 }
 
 bool outPttActive() { return pttOn; }
+void outForceBuzzer(bool on) { forceBuzzer = on; }
 bool outKeyIsDown() { return keyDown; }

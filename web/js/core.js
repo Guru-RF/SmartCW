@@ -82,6 +82,8 @@ async function post(path, params) {
 
 function applyState(s) {
   App.v = s.v;
+  App.id = s.id || "";
+  App.chip = s.chip || "";
   App.up = s.up;
   // keep locally pending edits on top of what the device reports
   App.cfg = Object.assign({}, s.cfg, Settings.pending);

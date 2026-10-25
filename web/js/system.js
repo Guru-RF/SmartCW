@@ -17,6 +17,7 @@ Pages.system = (() => {
     const r = (k, v) => h("div.kv", h("span.k", k), h("span.v", v));
     statusRows.replaceChildren(...[
       r("Firmware", "SmartCW " + App.v),
+      r("Serial number", h("span", App.id || "not set", h("small.dim", "  ·  chip " + App.chip))),
       r("Uptime", fmtUptime(App.up)),
       r("Key type", c.keyer || "-"),
       r("Output", c.output + (rt.practice ? " (practice held by a trainer)" : "")),

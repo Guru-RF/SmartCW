@@ -2,7 +2,7 @@
 
 How SmartCW talks to the computer: USB MIDI, USB keyboard, the serial and TCP text protocol, WinKeyer, cwdaemon and the web API. For the hardware, the settings and building see [README.md](README.md).
 
-SmartCW is a composite USB device (VID `0x1209`, PID `0xFF42`, product string `SmartCW`, manufacturer `RF.Guru`). Which interfaces it presents depends on `config.txt` and on what is held while plugging in:
+SmartCW is a composite USB device (VID `0x1209`, PID `0xFF42`, product string `SmartCW`, manufacturer `RF.Guru`). The USB serial number is the RF.Guru serial number (`!id`), or the RP2040's unique ID on a board that has none. Which interfaces it presents depends on `config.txt` and on what is held while plugging in:
 
 | Interface | When present |
 | --- | --- |
@@ -146,8 +146,12 @@ A line starting with `!` is a command, ended by CR or LF. Every response line st
 | Command | Response / effect |
 | --- | --- |
 | `!help` | the command list |
-| `!status` | settings, USB and network in words; after an unexpected restart also `!last crash: ...` |
+| `!status` | settings, USB and network in words (second line: `!id <serial or none>, chip <chip ID>`); after an unexpected restart also `!last crash: ...` |
 | `!state` | `!state {...}`: the same JSON as `GET /api/state` |
+| `!version` | `!version 2.3.0` |
+| `!id` | `!id SCW-00042`: the RF.Guru serial number, or `!id none` when the board has none yet |
+| `!id set <serial>` | store the serial number (1–24 characters, A–Z, 0–9 and `-`, lowercase is raised); replies `!id <serial>`. Refused with `!err id already set: !id clear first` while another one is stored. It is kept in its own flash sector: firmware updates, `config.txt` and factory settings never touch it, only `flash_nuke.uf2` erases it. From the next restart it is also the USB serial number |
+| `!id clear` | remove it; replies `!id none`. The USB serial number goes back to the chip ID after a restart |
 | `!get` | `!<setting> <value>` for every setting |
 | `!get <setting>`, `!<setting>` | one setting |
 | `!set <setting> <value>`, `!<setting> <value>` | change a setting, e.g. `!wpm 22`, `!keyer iambicA`, `!output audio`, `!mem1 CQ TEST {call}` |
@@ -164,10 +168,12 @@ A line starting with `!` is a command, ended by CR or LF. Every response line st
 | `!net` / `!net tcp` | web address, TCP port, clients; `tcp` lists every TCP connection |
 | `!perf` | the longest main-loop stalls (µs) since the last `!perf` |
 | `!drive` | expose `config.txt` as a USB drive now (USB re-enumerates) |
-| `!reboot` | restart |
-| `!bootloader` | restart into the UF2 bootloader |
+| `!inputs` | `!inputs dit 0 dah 0 ptt 0`: the raw contacts as wired (before `paddleSwap`), 1 = closed |
+| `!selftest` | each LED in turn (PWR, DIT, DAH, SER, SER2, 250 ms each), then all LEDs and a beep on the buzzer (even with `buzzer: false`); about 2 s later `!selftest done` goes to the serial port and every TCP client |
+| `!reboot` | restart; writes `config.txt` first when a change is pending |
+| `!bootloader` | `!rebooting into UF2 bootloader`, then the UF2 bootloader (`RPI-RP2`); writes `config.txt` first when a change is pending, so a setting changed just before an update is kept |
 
-The boot banner, sent about 1.5 s after power-up, starts with `!SmartCW 2.2.0 ready` and ends with `!type text to send CW, !help for commands`. A TCP client gets a one-line greeting.
+The boot banner, sent about 1.5 s after power-up, starts with `!SmartCW 2.3.0 ready` and ends with `!type text to send CW, !help for commands`. A TCP client gets a one-line greeting.
 
 ### Minimal client (Python)
 
@@ -223,7 +229,7 @@ Plain HTTP on port 80. Requests are `GET` or `POST` with url-encoded form fields
 
 | Request | Fields | Effect / response |
 | --- | --- | --- |
-| `GET /api/state` | | `{"v", "up", "cfg": {every setting}, "rt": {"midi", "kbd", "drive", "ip", "beacon", "practice", "busy", "tune", "wk", "restart", "dirty", "web", "tcp"}}`; `wk` is true while a logger has the WinKeyer open |
+| `GET /api/state` | | `{"v", "id", "chip", "up", "cfg": {every setting}, "rt": {"midi", "kbd", "drive", "ip", "beacon", "practice", "busy", "tune", "wk", "restart", "dirty", "web", "tcp"}}`; `v` is the firmware version, `id` the RF.Guru serial number (`""` when not set), `chip` the RP2040's unique ID (16 uppercase hex digits), `wk` is true while a logger has the WinKeyer open |
 | `GET /api/meta` | | every setting: key, type, section, help, min/max, default, options, restart flag |
 | `POST /api/set` | `setting=value&...` | changes settings; `{"ok", "err": {setting: message}, "restart"}`; valid fields apply even when others fail |
 | `POST /api/defaults` | `scope=all` (optional) | factory settings; returns the new state |

@@ -181,7 +181,9 @@ The USB serial port (any baud rate) and TCP port 23 (`nc 192.168.7.1 23`, `telne
 | `!beacon on/off`, `!tune [s/off]`, `!practice on/off` | beacon, tune (default 5 s), practice mode |
 | `!ptt`, `!stop` | PTT pulse; abort text, tune and beacon |
 | `!save`, `!defaults [all]` | write `config.txt` now (changes also save themselves); factory settings, `all` also clears call and memories |
-| `!net`, `!drive`, `!reboot`, `!bootloader` | network status, expose the drive, restart, firmware update mode |
+| `!net`, `!drive`, `!reboot`, `!bootloader` | network status, expose the drive, restart, firmware update mode (`!reboot` and `!bootloader` save a pending change first) |
+| `!version`, `!id` | firmware version; the RF.Guru serial number (`!id set <serial>` on the bench, also the USB serial number; firmware updates and factory settings keep it) |
+| `!inputs`, `!selftest` | hardware check: raw paddle and PTT contacts (`!inputs dit 0 dah 0 ptt 0`); each LED in turn and a beep, then `!selftest done` |
 | `!perf` | longest main-loop stalls since the last `!perf` (diagnostics) |
 
 ---
