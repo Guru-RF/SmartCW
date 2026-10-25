@@ -14,7 +14,7 @@ void hubStream(char c);
 void hubStateChanged();
 bool hubBeaconOn();
 void hubBeacon(bool on);
-// Play memory 1..6. Returns false when empty or out of range.
+// Play memory 1..10. Returns false when empty or out of range.
 bool hubPlayMemory(int n, uint8_t profile);
 void hubPttPulse(); // PTT button / command: MIDI pulse, or Enter in keyboard mode
 // Hardware check: each LED in turn, then a beep (about 2 s); "!selftest done"

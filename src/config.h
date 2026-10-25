@@ -19,7 +19,7 @@ enum KeyboardMode { KBD_TEXT, KBD_CTRL };
 // Cut numbers in contest serial numbers: 0 as T, and 9 as N.
 enum CutNumbers { CUT_OFF, CUT_T, CUT_TN };
 
-#define CFG_MEMS 6
+#define CFG_MEMS 10
 #define CFG_TEXT 72
 
 struct Config {

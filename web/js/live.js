@@ -282,7 +282,7 @@ Pages.live = (() => {
     const mems = h("div.mems");
     const syncMem = () => {
       mems.replaceChildren();
-      for (let i = 1; i <= 6; i++) {
+      for (let i = 1; i <= 10; i++) {
         const raw = App.cfg["mem" + i] || "";
         const t = expandShow(raw.toUpperCase());
         mems.appendChild(h("button.mem", { type: "button", disabled: !expand(raw).trim(), title: t, onclick: () => post("/api/mem", { n: i }) },

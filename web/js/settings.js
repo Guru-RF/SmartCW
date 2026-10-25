@@ -24,7 +24,7 @@ Pages.settings = (() => {
     const rn = () => restartNote.cloneNode(true);
 
     const memRows = [];
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 10; i++) {
       memRows.push(h("div.memrow", h("b", "M" + i), textInput("mem" + i, { maxlength: 71, placeholder: "empty" }),
         h("button.sm", { type: "button", "aria-label": "play memory " + i, onclick: () => post("/api/mem", { n: i, p: "practice" }) }, icon("play"))));
     }

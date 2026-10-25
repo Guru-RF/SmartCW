@@ -19,7 +19,7 @@ Buy here: [SmartCW – RF.Guru shop](https://shop.rf.guru)
 - **Transmit output**, three ways: the jack **keys the radio** like a straight key, or it is **PTT with the CW tone on line out** (audio mode, for FM, SSB or a data input, with PTT lead and tail), or **practice** (nothing transmitted). Keying compensation and first-element extension for QSK radios.
 - **Sidetone** on the piezo and the line-out jack, pitch and level adjustable.
 - **Decodes what you key** (adaptive for straight key) and sends it to the computer over USB serial, TCP and the web page.
-- **Sends text as CW**: from the web page, serial, TCP or the six memories, with Farnsworth spacing and prosigns like `<SK>`, `<KN>`, `<AR>`, `<BT>`.
+- **Sends text as CW**: from the web page, serial, TCP or the ten memories, with Farnsworth spacing and prosigns like `<SK>`, `<KN>`, `<AR>`, `<BT>`.
 - **Contest loggers**: SmartCW answers as a **WinKeyer** on its serial port (N1MM+, DXLog, Win-Test, fldigi, CQRLOG and every other WinKeyer logger) and as **cwdaemon** over the USB network (CQRLOG, TLF, xlog). Memories send a **contest serial number** with `{nr}`, with cut numbers (0 as T, 9 as N).
 - **USB MIDI** for SDR software: the keyer's output as one note, or the raw paddle contacts as two notes; a PTT note.
 - **USB keyboard**: decoded CW is typed into whatever window has focus, PTT = Enter.
@@ -149,6 +149,10 @@ Every setting can be changed in the web interface, with `!<setting> <value>` ove
 | `mem4` | `R TNX FER QSO 73 <SK>` | text, 71 chars | memory 4, {call}, {name} and {nr} are filled in |
 | `mem5` | `QRL?` | text, 71 chars | memory 5, {call}, {name} and {nr} are filled in |
 | `mem6` | `{call} DE {call}` | text, 71 chars | memory 6, {call}, {name} and {nr} are filled in |
+| `mem7` | `5NN {nr}` | text, 71 chars | memory 7, {call}, {name} and {nr} are filled in |
+| `mem8` | `{lastnr} {lastnr}` | text, 71 chars | memory 8, {call}, {name} and {nr} are filled in |
+| `mem9` | `AGN?` | text, 71 chars | memory 9, {call}, {name} and {nr} are filled in |
+| `mem10` | `QRZ?` | text, 71 chars | memory 10, {call}, {name} and {nr} are filled in |
 | `nr` | `1` | 1..9999 | contest serial number, {nr} sends it and moves on, {lastnr} repeats the last one |
 | `cutNumbers` | `off` | off, t, tn | serial numbers: t = send 0 as T, tn = also 9 as N |
 | `beaconText` | `VVV VVV DE {call} {call}` | text, 71 chars | beacon message |
@@ -176,7 +180,7 @@ The USB serial port (any baud rate) and TCP port 23 (`nc 192.168.7.1 23`, `telne
 | `!status` | settings, USB and network in words |
 | `!state` | everything as one JSON line |
 | `!get [setting]`, `!<setting> [value]` | show or change any setting, e.g. `!wpm 22`, `!tone 650`, `!keyer iambicA` |
-| `!send <text>`, `!mem <1..6>` | send text or a memory |
+| `!send <text>`, `!mem <1..10>` | send text or a memory |
 | `!nr [n]` | show or set the contest serial number |
 | `!beacon on/off`, `!tune [s/off]`, `!practice on/off` | beacon, tune (default 5 s), practice mode |
 | `!ptt`, `!stop` | PTT pulse; abort text, tune and beacon |

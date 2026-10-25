@@ -28,7 +28,7 @@ void cliHelp(Print &o) {
   o.println(F("!  !keyer iambicA|iambicB|ultimatic|bug|straight"));
   o.println(F("!  !output key|audio|off key the radio, audio + PTT, or practice"));
   o.println(F("!  !send <text>          send text (same as typing it)"));
-  o.println(F("!  !mem <1..6>           send a memory ({nr} in it sends the serial number)"));
+  o.println(F("!  !mem <1..10>          send a memory ({nr} in it sends the serial number)"));
   o.println(F("!  !nr [n]               contest serial number, e.g. !nr 1 for a new contest"));
   o.println(F("!  !beacon on|off        repeat beaconText every beaconEvery seconds"));
   o.println(F("!  !tune [seconds|off]   key down to tune (default 5 s, max 20)"));
@@ -237,7 +237,7 @@ void cliExec(const char *lineIn, Print &o) {
       o.print(F("!mem "));
       o.println(n);
     } else {
-      o.println(F("!err mem 1..6 (empty memories are skipped)"));
+      o.println(F("!err mem 1..10 (empty memories are skipped)"));
     }
   } else if (!strcasecmp(head, "beacon")) {
     if (argLower == "on" || argLower == "off")

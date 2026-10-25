@@ -64,6 +64,10 @@ static const CfgItem items[] = {
     MEM(4, "R TNX FER QSO 73 <SK>"),
     MEM(5, "QRL?"),
     MEM(6, "{call} DE {call}"),
+    MEM(7, "5NN {nr}"),
+    MEM(8, "{lastnr} {lastnr}"),
+    MEM(9, "AGN?"),
+    MEM(10, "QRZ?"),
     I("nr", nr, 1, 9999, 1, "memories", CF_KEEP, "contest serial number, {nr} sends it and moves on, {lastnr} repeats the last one"),
     E("cutNumbers", cutNumbers, "off|t|tn", CUT_OFF, "memories", 0, "serial numbers: t = send 0 as T, tn = also 9 as N"),
     S("beaconText", OFF(beaconText), CFG_TEXT, "VVV VVV DE {call} {call}", "beacon", CF_KEEP, "beacon message"),
@@ -565,7 +569,7 @@ bool configBegin() {
 
   configParse(content.c_str(), config);
   // Older files lack the newer keys: rewrite once so they show up.
-  if (content.indexOf("cwdaemonPort") < 0)
+  if (content.indexOf("mem10") < 0)
     writeFile(CONFIG_PATH, configToYaml(config));
   Serial.println("[cfg] config.txt loaded");
   return true;

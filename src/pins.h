@@ -14,4 +14,4 @@
 #define PIN_LED_SER 10
 #define PIN_LED_SER2 7
 
-#define SMARTCW_VERSION "2.3.0"
+#define SMARTCW_VERSION "2.3.1"

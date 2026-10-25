@@ -170,7 +170,7 @@ static void fail(Slot &s, int code, const char *msg) {
 }
 
 void webStateJson(String &out) {
-  out.reserve(2600);
+  out.reserve(3000);
   out += "{\"v\":\"" SMARTCW_VERSION "\",\"id\":\"";
   out += identSerial();
   out += "\",\"chip\":\"";

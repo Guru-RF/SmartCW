@@ -208,7 +208,7 @@ svg.tree.off .node.on rect,svg.tree.off .node.on circle:not(.hit){fill:#7b6a3a}
 .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:4px 0 14px}
 .toggles{display:flex;gap:18px;flex-wrap:wrap}
 .toggles .sw{transform:scale(.85)}
-.mems{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.mems{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
 .mem{flex-direction:column;align-items:flex-start;gap:2px;padding:7px 10px;text-align:left;min-width:0;font-weight:500}
 .mem small{color:var(--accent);font-weight:700;font-size:11px}
 .mem span{display:block;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
@@ -344,7 +344,6 @@ ol.howto li{margin:4px 0}
   .dp-ctl{max-width:100%}
   .dp-ctl>input:not([type=checkbox]){width:100%}
   .rng input{width:130px}
-  .mems{grid-template-columns:1fr 1fr}
   .choices{grid-template-columns:1fr}
   .tr-big{font-size:44px}
   .steps .b.lvl>i{width:32px}

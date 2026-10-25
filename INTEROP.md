@@ -148,7 +148,7 @@ A line starting with `!` is a command, ended by CR or LF. Every response line st
 | `!help` | the command list |
 | `!status` | settings, USB and network in words (second line: `!id <serial or none>, chip <chip ID>`); after an unexpected restart also `!last crash: ...` |
 | `!state` | `!state {...}`: the same JSON as `GET /api/state` |
-| `!version` | `!version 2.3.0` |
+| `!version` | `!version 2.3.1` |
 | `!id` | `!id SCW-00042`: the RF.Guru serial number, or `!id none` when the board has none yet |
 | `!id set <serial>` | store the serial number (1–24 characters, A–Z, 0–9 and `-`, lowercase is raised); replies `!id <serial>`. Refused with `!err id already set: !id clear first` while another one is stored. It is kept in its own flash sector: firmware updates, `config.txt` and factory settings never touch it, only `flash_nuke.uf2` erases it. From the next restart it is also the USB serial number |
 | `!id clear` | remove it; replies `!id none`. The USB serial number goes back to the chip ID after a restart |
@@ -156,7 +156,7 @@ A line starting with `!` is a command, ended by CR or LF. Every response line st
 | `!get <setting>`, `!<setting>` | one setting |
 | `!set <setting> <value>`, `!<setting> <value>` | change a setting, e.g. `!wpm 22`, `!keyer iambicA`, `!output audio`, `!mem1 CQ TEST {call}` |
 | `!send <text>` | send text (same as typing it) |
-| `!mem <1..6>` | send a memory; `{nr}` in it sends the serial number, which then moves on |
+| `!mem <1..10>` | send a memory; `{nr}` in it sends the serial number, which then moves on |
 | `!nr [n]` | show or set the contest serial number (a setting like any other) |
 | `!beacon on/off` | repeat `beaconText` every `beaconEvery` seconds |
 | `!tune [1..20 / off]` | key down to tune, default 5 s |
@@ -173,7 +173,7 @@ A line starting with `!` is a command, ended by CR or LF. Every response line st
 | `!reboot` | restart; writes `config.txt` first when a change is pending |
 | `!bootloader` | `!rebooting into UF2 bootloader`, then the UF2 bootloader (`RPI-RP2`); writes `config.txt` first when a change is pending, so a setting changed just before an update is kept |
 
-The boot banner, sent about 1.5 s after power-up, starts with `!SmartCW 2.3.0 ready` and ends with `!type text to send CW, !help for commands`. A TCP client gets a one-line greeting.
+The boot banner, sent about 1.5 s after power-up, starts with `!SmartCW 2.3.1 ready` and ends with `!type text to send CW, !help for commands`. A TCP client gets a one-line greeting.
 
 ### Minimal client (Python)
 
@@ -235,7 +235,7 @@ Plain HTTP on port 80. Requests are `GET` or `POST` with url-encoded form fields
 | `POST /api/defaults` | `scope=all` (optional) | factory settings; returns the new state |
 | `POST /api/send` | `text`, `p` = `tx` (default), `practice` or `train`, `wpm`, `eff` | queue text; `practice` and `train` are never transmitted, `train` uses the trainer speed and tone, or `wpm`/`eff` when given |
 | `POST /api/stop` | | abort text, tune and beacon |
-| `POST /api/mem` | `n` = 1..6, `p` | send a memory |
+| `POST /api/mem` | `n` = 1..10, `p` | send a memory |
 | `POST /api/beacon` | `on` = 1/0 | beacon on or off |
 | `POST /api/tune` | `ms` (0 stops, max 20000) | key down to tune |
 | `POST /api/practice` | `ms` (default 8000, max 600000) or `on=0` | hold practice mode; the trainer pages refresh this every 4 s |
