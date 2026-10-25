@@ -14,7 +14,8 @@ enum EventType : uint8_t {
   EV_DONE,    // the player ran out of text
   EV_ABORT,   // a paddle interrupted the player
   EV_PTT,     // a: audio-mode PTT on/off
-  EV_PADDLE,  // a: 'd'/'D' dit contact on/off, 'h'/'H' dah contact on/off
+  EV_PADDLE,  // a: 'd'/'D' dit contact on/off, 'h'/'H' dah contact on/off (raw)
+  EV_CMD,     // a: '.' or '-', a paddle tapped while PTT is held (speed down / up)
 };
 enum KeyFlags : uint16_t {
   EVK_TX = 1,       // this mark goes out on the TX path (not practice)
@@ -45,6 +46,7 @@ bool engineEventsLost(); // and clears the flag
 // of characters accepted.
 size_t engineQueue(const char *text, uint8_t profile);
 size_t engineQueueFree();
+size_t engineQueued(); // characters waiting, not yet taken by the player
 void engineStop();       // drop queued text, end tune, release the key
 void engineResetKeyer(); // mode switch: release and drop any partial character
 void engineBeep(uint8_t count);
@@ -52,6 +54,13 @@ void engineTune(uint32_t ms); // 0 stops
 void enginePractice(uint32_t ms); // no TX for this long (trainer heartbeat)
 // Speed for PROF_TRAIN text queued from now on; wpm 0 = trainWpm/trainEff from config.
 void engineTrainSpeed(int wpm, int eff);
+// Paddle contacts from the host (WinKeyer software paddle): bit 0 dit, bit 1 dah.
+void engineSoftPaddle(uint8_t bits);
+// While held (the PTT button), a paddle press is a command (EV_CMD) and
+// keys nothing until the button and the paddles are released.
+void engineCommandHold(bool held);
+// Contest word spacing (6 dits instead of 7) for text.
+void engineContestSpacing(bool on);
 
 bool engineBusy();        // paddles, keyer, player or tune active
 bool enginePlayerBusy();

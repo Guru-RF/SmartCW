@@ -1,10 +1,13 @@
 #include "hub.h"
 #include "config.h"
+#include "cwd.h"
 #include "engine.h"
 #include "leds.h"
 #include "net.h"
+#include "ptt.h"
 #include "usbio.h"
 #include "web.h"
+#include "wk.h"
 
 static bool beaconOn = false;
 static bool beaconSending = false;
@@ -13,9 +16,13 @@ static bool pttNoteOn = false;
 static unsigned long pttNoteOffAt = 0;
 static uint8_t keyNote = 0;
 static bool keyNoteOn = false;
+static bool padDit = false, padDah = false;   // raw paddle contacts
+static bool midiDit = false, midiDah = false; // paddles mode notes held
+static bool ctrlL = false, ctrlR = false;     // vBand/Vail keys held
 
 void hubStream(const char *s) {
-  Serial.print(s);
+  if (!wkActive()) // a logger owns the serial port
+    Serial.print(s);
   netStream(s);
 }
 
@@ -42,13 +49,19 @@ void hubBeacon(bool on) {
 bool hubPlayMemory(int n, uint8_t profile) {
   if (n < 1 || n > CFG_MEMS || !config.mem[n - 1][0])
     return false;
-  String t = configExpand(config.mem[n - 1]);
+  bool usedNr = false;
+  String t = configExpand(config.mem[n - 1], &usedNr);
   engineQueue(t.c_str(), profile);
+  if (usedNr && profile == PROF_TX) { // the next contact gets the next number
+    config.nr = config.nr < 9999 ? config.nr + 1 : 1;
+    configMarkDirty();
+    hubStateChanged();
+  }
   return true;
 }
 
 void hubPttPulse() {
-  if (usbKeyboardActive()) {
+  if (usbKeyboardActive() && config.keyboardMode == KBD_TEXT) {
     usbTypeChar('\n');
     return;
   }
@@ -84,8 +97,36 @@ static void midiKey(const Event &e) {
   }
 }
 
+// Paddles mode MIDI notes go out only while transmitting is allowed; the
+// vBand/Vail Ctrl keys only outside the trainer.
+static void syncPaddles() {
+  bool tx = config.output != OUT_OFF && !enginePracticeActive();
+  bool mp = usbMidiActive() && config.midiMode == MIDI_PADDLES && tx;
+  if ((padDit && mp) != midiDit) {
+    midiDit = padDit && mp;
+    usbMidiNote((uint8_t)config.midiDitNote, midiDit);
+  }
+  if ((padDah && mp) != midiDah) {
+    midiDah = padDah && mp;
+    usbMidiNote((uint8_t)config.midiDahNote, midiDah);
+  }
+  bool kc = usbKeyboardActive() && config.keyboardMode == KBD_CTRL && !enginePracticeActive();
+  bool straight = config.keyer == KM_STRAIGHT;
+  bool l = kc && (padDit || (straight && padDah)), r = kc && !straight && padDah;
+  if (l != ctrlL) {
+    ctrlL = l;
+    usbKey(USB_KEY_LEFT_CTRL, l);
+  }
+  if (r != ctrlR) {
+    ctrlR = r;
+    usbKey(USB_KEY_RIGHT_CTRL, r);
+  }
+}
+
 static void handle(const Event &e) {
   char buf[96], ch[8];
+  wkEvent(e);
+  cwdEvent(e);
   switch (e.type) {
   case EV_KEY:
     midiKey(e);
@@ -93,11 +134,14 @@ static void handle(const Event &e) {
     webEvent(buf);
     break;
   case EV_PADDLE:
-    if (usbMidiActive() && config.midiMode == MIDI_PADDLES) {
-      bool dit = (e.a == 'd' || e.a == 'D');
-      bool on = (e.a == 'd' || e.a == 'h');
-      usbMidiNote((uint8_t)(dit ? config.midiDitNote : config.midiDahNote), on);
-    }
+    if (e.a == 'd' || e.a == 'D')
+      padDit = e.a == 'd';
+    else
+      padDah = e.a == 'h';
+    syncPaddles();
+    break;
+  case EV_CMD:
+    pttCommand((char)e.a);
     break;
   case EV_ELEM:
     snprintf(buf, sizeof(buf), "{\"e\":\"el\",\"v\":\"%c\",\"m\":%u,\"g\":%u}", e.a, e.b, e.c);
@@ -107,7 +151,8 @@ static void handle(const Event &e) {
     char c = (char)e.a;
     if (c) {
       hubStream(c);
-      if (usbKeyboardActive() && !enginePracticeActive() && (uint8_t)c < 0x80 && c != '#')
+      if (usbKeyboardActive() && config.keyboardMode == KBD_TEXT && !enginePracticeActive() && (uint8_t)c < 0x80 &&
+          c != '#')
         usbTypeChar(c);
       jsonChar(ch, sizeof(ch), c);
     } else {
@@ -168,6 +213,8 @@ void hubTick() {
     wasDirty = dirty;
     webStateDirty();
   }
+
+  syncPaddles(); // output, MIDI mode or practice may have changed
 
   unsigned long now = millis();
   if (pttNoteOn && (long)(now - pttNoteOffAt) >= 0) {

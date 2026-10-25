@@ -7,6 +7,7 @@
 #include "pins.h"
 #include "usbio.h"
 #include "web_assets.h"
+#include "wk.h"
 #include <WiFiClient.h>
 #include <WiFiServer.h>
 #include <lwip/tcp.h>
@@ -189,6 +190,8 @@ void webStateJson(String &out) {
   out += enginePlayerBusy() ? "true" : "false";
   out += ",\"tune\":";
   out += engineTuning() ? "true" : "false";
+  out += ",\"wk\":";
+  out += wkOpen() ? "true" : "false";
   out += ",\"restart\":";
   out += configRestartNeeded() ? "true" : "false";
   out += ",\"dirty\":";
@@ -446,7 +449,7 @@ static void route(Slot &s, const char *method, char *path, char *query, char *bo
     configDefaults(tmp);
     configParse(body, tmp);
     bool reboot = tmp.midi != config.midi || tmp.keyboard != config.keyboard || tmp.network != config.network ||
-                  tmp.tcpPort != config.tcpPort || strcmp(tmp.ip, config.ip);
+                  tmp.tcpPort != config.tcpPort || tmp.cwdaemonPort != config.cwdaemonPort || strcmp(tmp.ip, config.ip);
     config = tmp;
     if (reboot)
       configSetRestartNeeded();

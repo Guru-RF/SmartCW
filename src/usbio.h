@@ -12,6 +12,10 @@ bool usbDriveMounted();  // host currently owns the drive (FatFS is closed)
 
 void usbMidiNote(uint8_t note, bool on);
 void usbTypeChar(char c);
+// Hold or release one key (KEY_LEFT_CTRL etc. from Keyboard.h).
+void usbKey(uint8_t key, bool down);
+#define USB_KEY_LEFT_CTRL 0x80
+#define USB_KEY_RIGHT_CTRL 0x84
 
 // Expose the drive at runtime (re-enumerates USB; the serial port drops briefly).
 bool usbDriveBegin();

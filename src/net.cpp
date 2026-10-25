@@ -1,6 +1,7 @@
 #include "net.h"
 #include "cli.h"
 #include "config.h"
+#include "cwd.h"
 #include "pins.h"
 #include "web.h"
 #include <NCMEthernetlwIP.h>
@@ -158,6 +159,10 @@ void netPrintStatus(Print &o) {
   o.print(netIp());
   o.print(F("/ or http://smartcw.local/, tcp port "));
   o.print(config.tcpPort);
+  if (config.cwdaemonPort) {
+    o.print(F(", cwdaemon udp port "));
+    o.print(config.cwdaemonPort);
+  }
   o.print(F(", web clients "));
   o.print(webClients());
   o.print(F(", tcp clients "));
@@ -199,6 +204,7 @@ void netBegin() {
   tcpServer = new WiFiServer((uint16_t)config.tcpPort);
   tcpServer->begin();
   webBegin();
+  cwdBegin();
   active = true;
 }
 
@@ -299,4 +305,5 @@ void netTick() {
   }
   tcpTick();
   webTick();
+  cwdTick();
 }

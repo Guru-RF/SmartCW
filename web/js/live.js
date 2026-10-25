@@ -250,7 +250,7 @@ Pages.live = (() => {
       h("div.steps", stepper("wpm", "WPM", 1), stepper("tone", "TONE", 10, " Hz"), stepper("farnsworth", "FARNSWORTH", 1)),
       h("div.toggles",
         h("label.check", switchInput("buzzer"), " Buzzer"),
-        h("label.check", kbd, " Keyboard typing", h("small", " (restart)")),
+        h("label.check", kbd, " USB keyboard", h("small", " (restart)")),
         h("label.check", switchInput("midi"), " MIDI", h("small", " (restart)"))),
     ];
     return card("sliders", "Mode", "How SmartCW keys and what it transmits", ...body);
@@ -301,7 +301,9 @@ Pages.live = (() => {
         h("button", { type: "button", onclick: () => post("/api/ptt") }, "PTT"),
         h("label.check.small", liveChk, " send while typing")),
       mems,
-      h("p.hint", "Memories, beacon text and speed are set in ", h("a", { href: "#/settings" }, "Settings"), "."));
+      h("div.steps.nr", stepper("nr", "SERIAL NR", 1, { fmt: fmtNr })),
+      h("p.hint", "Memories, beacon text and speed are set in ", h("a", { href: "#/settings" }, "Settings"),
+        ". {nr} in a memory sends the serial number and moves on to the next."));
   }
 
   function monitorCard() {

@@ -54,7 +54,9 @@ Pages.settings = (() => {
             row("Output", "", segmented("output", ["key", "audio", "off"], ["Key line", "Audio + PTT", "Practice"])),
             h("p.hint", "Key line: the jack keys your radio like a straight key. Audio + PTT: the jack is PTT and the CW tone goes out on line out, for FM, SSB or a data input. Practice: nothing is transmitted."),
             row("PTT lead", "audio mode: time between PTT and the first tone", rangeInput("pttLead", " ms", null, 10)),
-            row("PTT tail", "audio mode: PTT stays on this long after the last tone", rangeInput("pttTail", " ms", null, 50))),
+            row("PTT tail", "audio mode: PTT stays on this long after the last tone", rangeInput("pttTail", " ms", null, 50)),
+            row("Key compensation", "added to every transmitted dit and dah, for QSK radios that shorten them", rangeInput("keyComp", " ms")),
+            row("First element", "added to the first dit or dah after a pause, for radios that clip it", rangeInput("firstExt", " ms", null, 5))),
           card("cw", "Text sending", "Text from the browser, TCP, serial and memories",
             row("Farnsworth", "extra space between letters at this effective speed; off = normal spacing",
               rangeInput("farnsworth", "", (v) => (v ? v + " wpm" : "off")))),
@@ -66,8 +68,10 @@ Pages.settings = (() => {
           card("user", "Station", "Used in memories as {call} and {name}, and by the trainer",
             row("Callsign", "", textInput("call", { maxlength: 15, placeholder: "ON6URE", style: { textTransform: "uppercase" } })),
             row("Name", "", textInput("name", { maxlength: 19, placeholder: "your name" }))),
-          card("list", "Memories", "Send them from the Live page, TCP or serial (!mem 1). {call}, {name}, <SK> <KN> <AR> <BT> work.",
-            ...memRows),
+          card("list", "Memories", "Send them from the Live page, TCP or serial (!mem 1). {call}, {name}, {nr}, <SK> <KN> <AR> <BT> work.",
+            ...memRows,
+            row("Serial number", "{nr} sends it, then moves on for the next contact; {lastnr} repeats it", numInput("nr")),
+            row("Cut numbers", "in serial numbers", segmented("cutNumbers", ["off", "t", "tn"], ["Off", "0 → T", "0 → T, 9 → N"]))),
           card("beacon", "Beacon", "Repeats a message, e.g. for antenna tests or fox hunts",
             row("Message", "", textInput("beaconText", { maxlength: 71 })),
             row("Every", "seconds between transmissions", rangeInput("beaconEvery", " s", null, 5))),
@@ -80,19 +84,33 @@ Pages.settings = (() => {
               h("label", "Straight key", numInput("midiStraightNote")),
               h("label", "PTT", numInput("midiPttNote")),
               h("label", "Dit contact", numInput("midiDitNote")),
-              h("label", "Dah contact", numInput("midiDahNote")))),
-          card("keyboard", "Computer", "Type into any program by keying",
-            row(["Keyboard typing", rn()], "decoded CW is typed as USB keystrokes, PTT = Enter", switchInput("keyboard"))),
+              h("label", "Dah contact", numInput("midiDahNote"))),
+            h("div.actions.tight",
+              h("button.sm", { type: "button", onclick: () => midiNotes([0, 0, 1, 2]) }, "Vail notes"),
+              h("button.sm", { type: "button", onclick: () => midiNotes(null) }, "SmartCW notes"),
+              h("small.dim", "Vail: keyed = straight key note 0, paddles = notes 1 and 2"))),
+          card("keyboard", "Computer", "Keyboard, internet CW and contest loggers",
+            row(["USB keyboard", rn()], "SmartCW is also a keyboard", switchInput("keyboard")),
+            row("Keyboard sends", "typing: decoded CW as letters, PTT = Enter; paddle keys: Left and Right Ctrl, for vBand and Vail",
+              segmented("keyboardMode", ["text", "ctrl"], ["Typing", "Paddle keys"])),
+            row("WinKeyer", "contest loggers (N1MM+, DXLog, Win-Test, fldigi, CQRLOG) see a WinKeyer on the serial port", switchInput("winkeyer"))),
           card("network", "USB network", "This web page and the TCP port, over the USB cable",
             row(["USB Ethernet", rn()], "turning it off removes this web interface", switchInput("network")),
             row(["Address", rn()], "your computer gets an address next to it automatically", textInput("ip", { maxlength: 15, inputmode: "decimal" })),
-            row(["TCP port", rn()], "text and command protocol, like the serial port", numInput("tcpPort"))))));
+            row(["TCP port", rn()], "text and command protocol, like the serial port", numInput("tcpPort")),
+            row(["cwdaemon port", rn()], "UDP, for Linux loggers (CQRLOG, TLF, xlog); 0 = off", numInput("cwdaemonPort"))))));
 
     Bus.on("saved", () => flashSaved());
     Bus.on("state", () => {
       savedChip.classList.toggle("form-unsaved", !!App.rt.dirty);
       savedChip.lastChild.textContent = App.rt.dirty ? "Saving…" : "Saved";
     });
+  }
+
+  // MIDI note numbers: cw, straight, dit, dah; null = SmartCW's defaults.
+  function midiNotes(v) {
+    ["midiCwNote", "midiStraightNote", "midiDitNote", "midiDahNote"].forEach((k, i) =>
+      Settings.set(k, v ? v[i] : App.metaBy[k].d));
   }
 
   function flashSaved() {

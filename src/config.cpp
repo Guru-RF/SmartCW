@@ -11,12 +11,12 @@ static const char *CONFIG_PATH = "/config.txt";
 #define B(k, f, d, sec, fl, h) {k, CT_BOOL, OFF(f), 0, 1, d, nullptr, nullptr, sec, fl, h}
 #define E(k, f, opts, d, sec, fl, h) {k, CT_ENUM, OFF(f), 0, 0, d, nullptr, opts, sec, fl, h}
 #define S(k, off, len, d, sec, fl, h) {k, CT_STR, (uint16_t)(off), 0, (len) - 1, 0, d, nullptr, sec, fl, h}
-#define MEM(n, d) S("mem" #n, OFF(mem) + ((n) - 1) * CFG_TEXT, CFG_TEXT, d, "memories", CF_KEEP, "memory " #n ", {call} and {name} are filled in")
+#define MEM(n, d) S("mem" #n, OFF(mem) + ((n) - 1) * CFG_TEXT, CFG_TEXT, d, "memories", CF_KEEP, "memory " #n ", {call}, {name} and {nr} are filled in")
 
 static const CfgItem items[] = {
     E("keyer", keyer, "iambicA|iambicB|ultimatic|bug|straight", KM_IAMBIC_B, "keyer", 0,
       "key type on the paddle jack; a long press (1.5 s) on PTT toggles straight"),
-    I("wpm", wpm, 5, 60, 18, "keyer", 0, "keyer and text speed, words per minute"),
+    I("wpm", wpm, 5, 99, 18, "keyer", 0, "keyer and text speed, words per minute"),
     I("weight", weight, 25, 75, 50, "keyer", 0, "mark/space weighting in %, 50 = standard"),
     I("ratio", ratio, 25, 45, 30, "keyer", 0, "dah length in tenths of a dit, 30 = 3.0"),
     B("paddleSwap", paddleSwap, 0, "keyer", 0, "swap the dit and dah paddles"),
@@ -31,6 +31,8 @@ static const CfgItem items[] = {
       "key = output keys the radio, audio = output is PTT and the tone goes out on line out, off = practice"),
     I("pttLead", pttLead, 0, 500, 50, "output", 0, "audio mode: ms between PTT and the first tone"),
     I("pttTail", pttTail, 0, 3000, 400, "output", 0, "audio mode: ms PTT stays on after the last tone"),
+    I("keyComp", keyComp, 0, 50, 0, "output", 0, "ms added to every transmitted dit and dah (QSK), taken from the space after it"),
+    I("firstExt", firstExt, 0, 150, 0, "output", 0, "ms added to the first dit or dah after a pause, for radios that clip it"),
 
     I("farnsworth", farnsworth, 0, 60, 0, "text", 0, "text sending: effective wpm for the spacing, 0 = off"),
 
@@ -48,7 +50,10 @@ static const CfgItem items[] = {
     I("midiDahNote", midiDahNote, 0, 127, 68, "midi", 0, "paddles mode: dah contact"),
 
     B("keyboard", keyboard, 0, "computer", CF_REBOOT,
-      "type decoded CW as USB keystrokes (holding PTT while plugging in does this once)"),
+      "USB keyboard (holding PTT while plugging in turns it on once)"),
+    E("keyboardMode", keyboardMode, "text|ctrl", KBD_TEXT, "computer", 0,
+      "text = decoded CW is typed, PTT = Enter; ctrl = paddles as Left/Right Ctrl keys for vBand and Vail"),
+    B("winkeyer", winkeyer, 1, "computer", 0, "answer WinKeyer commands on the USB serial port, for contest loggers"),
 
     S("call", OFF(call), sizeof(Config::call), "", "station", CF_KEEP, "your callsign"),
     S("name", OFF(name), sizeof(Config::name), "", "station", CF_KEEP, "your name"),
@@ -59,6 +64,8 @@ static const CfgItem items[] = {
     MEM(4, "R TNX FER QSO 73 <SK>"),
     MEM(5, "QRL?"),
     MEM(6, "{call} DE {call}"),
+    I("nr", nr, 1, 9999, 1, "memories", CF_KEEP, "contest serial number, {nr} sends it and moves on, {lastnr} repeats the last one"),
+    E("cutNumbers", cutNumbers, "off|t|tn", CUT_OFF, "memories", 0, "serial numbers: t = send 0 as T, tn = also 9 as N"),
     S("beaconText", OFF(beaconText), CFG_TEXT, "VVV VVV DE {call} {call}", "beacon", CF_KEEP, "beacon message"),
     I("beaconEvery", beaconEvery, 5, 3600, 60, "beacon", 0, "seconds between beacon transmissions"),
 
@@ -66,6 +73,7 @@ static const CfgItem items[] = {
     S("ip", OFF(ip), sizeof(Config::ip), "192.168.7.1", "network", CF_REBOOT,
       "SmartCW's address; the computer gets the next free one from its DHCP server (/24)"),
     I("tcpPort", tcpPort, 1, 65535, 23, "network", CF_REBOOT, "TCP port for the text/command protocol"),
+    I("cwdaemonPort", cwdaemonPort, 0, 65535, 6789, "network", CF_REBOOT, "cwdaemon UDP port for Linux loggers, 0 = off"),
 };
 
 static const int ITEM_COUNT = sizeof(items) / sizeof(items[0]);
@@ -233,6 +241,8 @@ const char *cfgSet(const char *key, const char *value) {
     configMarkDirty();
     if (it->flags & CF_REBOOT)
       configSetRestartNeeded();
+    if (configSetHook)
+      configSetHook(it);
   }
   return nullptr;
 }
@@ -319,9 +329,9 @@ static const char *sectionTitle(const char *s) {
   if (!strcmp(s, "text")) return "Text sending";
   if (!strcmp(s, "trainer")) return "Trainer";
   if (!strcmp(s, "midi")) return "USB MIDI (restart after changing midi)";
-  if (!strcmp(s, "computer")) return "Computer (restart after changing keyboard)";
+  if (!strcmp(s, "computer")) return "Computer (restart after turning keyboard on or off)";
   if (!strcmp(s, "station")) return "Station";
-  if (!strcmp(s, "memories")) return "Memories, <SK> <KN> <AR> <BT> send prosigns";
+  if (!strcmp(s, "memories")) return "Memories, <SK> <KN> <AR> <BT> send prosigns, {nr} a serial number";
   if (!strcmp(s, "beacon")) return "Beacon";
   if (!strcmp(s, "network")) return "USB Ethernet (restart after changing)";
   return s;
@@ -449,12 +459,36 @@ int configDitMs() {
   return 1200 / wpm;
 }
 
-String configExpand(const char *text) {
+String configSerial(int nr) {
+  char b[8];
+  snprintf(b, sizeof(b), "%03d", nr);
+  for (char *p = b; *p; p++) {
+    if (*p == '0' && config.cutNumbers != CUT_OFF)
+      *p = 'T';
+    else if (*p == '9' && config.cutNumbers == CUT_TN)
+      *p = 'N';
+  }
+  return String(b);
+}
+
+String configExpand(const char *text, bool *usedNr) {
   String s = text;
   s.replace("{call}", config.call);
   s.replace("{CALL}", config.call);
   s.replace("{name}", config.name);
   s.replace("{NAME}", config.name);
+  if (s.indexOf('{') >= 0) {
+    String last = configSerial(config.nr > 1 ? config.nr - 1 : 1);
+    s.replace("{lastnr}", last);
+    s.replace("{LASTNR}", last);
+    if (s.indexOf("{nr}") >= 0 || s.indexOf("{NR}") >= 0) {
+      String nr = configSerial(config.nr);
+      s.replace("{nr}", nr);
+      s.replace("{NR}", nr);
+      if (usedNr)
+        *usedNr = true;
+    }
+  }
   return s;
 }
 
@@ -531,14 +565,20 @@ bool configBegin() {
 
   configParse(content.c_str(), config);
   // Older files lack the newer keys: rewrite once so they show up.
-  if (content.indexOf("trainWpm") < 0)
+  if (content.indexOf("cwdaemonPort") < 0)
     writeFile(CONFIG_PATH, configToYaml(config));
   Serial.println("[cfg] config.txt loaded");
   return true;
 }
 
+void (*configSaveFilter)(Config &c) = nullptr;
+void (*configSetHook)(const CfgItem *it) = nullptr;
+
 bool configSave() {
-  bool ok = writeFile(CONFIG_PATH, configToYaml(config));
+  Config c = config;
+  if (configSaveFilter)
+    configSaveFilter(c);
+  bool ok = writeFile(CONFIG_PATH, configToYaml(c));
   if (ok)
     dirty = false;
   return ok;

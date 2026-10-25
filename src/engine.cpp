@@ -70,6 +70,7 @@ static bool tqPut(uint8_t profile, char c) {
 }
 
 size_t engineQueueFree() { return (size_t)((tqTail + TXQ - tqHead - 1) % TXQ); }
+size_t engineQueued() { return (size_t)((tqHead + TXQ - tqTail) % TXQ); }
 
 size_t engineQueue(const char *text, uint8_t profile) {
   size_t n = 0;
@@ -114,6 +115,9 @@ static volatile uint8_t beepReq = 0;
 static volatile uint32_t tuneReqMs = 0;
 static volatile uint32_t practiceUntil = 0;
 static volatile int trainWpm = 0, trainEff = 0; // per-request trainer speed
+static volatile uint8_t softPad = 0;
+static volatile bool cmdHeld = false;
+static volatile bool ctSpace = false;
 
 // ---------------- timing ----------------
 struct Timing {
@@ -144,7 +148,7 @@ static void calcTiming(Timing &t, int wpm, int eff) {
     t.wordGap = (uint16_t)(7 * ta / 19);
   } else {
     t.charGap = (uint16_t)(3 * dit);
-    t.wordGap = (uint16_t)(7 * dit);
+    t.wordGap = (uint16_t)((ctSpace ? 6 : 7) * dit);
   }
 }
 
@@ -159,6 +163,8 @@ static void readPaddles(bool &d, bool &h, bool &dRise, bool &hRise, bool &dFall,
     rd = rh;
     rh = t;
   }
+  rd = rd || (softPad & 1);
+  rh = rh || (softPad & 2);
   histDit = (uint8_t)((histDit << 1) | rd);
   histDah = (uint8_t)((histDah << 1) | rh);
   bool nd = padDit, nh = padDah;
@@ -182,6 +188,20 @@ static void readPaddles(bool &d, bool &h, bool &dRise, bool &hRise, bool &dFall,
 
 // ---------------- marks ----------------
 static uint16_t markFlags = 0;
+static uint32_t lastMarkEnd = 0;
+
+// Keying compensation and first element extension for a transmitted mark:
+// the extra ms for this mark, and in comp the part that comes off the space.
+static uint16_t txExtra(bool tx, uint32_t now, uint16_t dit, uint16_t &comp) {
+  comp = 0;
+  if (!tx)
+    return 0;
+  comp = (uint16_t)config.keyComp;
+  uint16_t extra = comp;
+  if (config.firstExt && now - lastMarkEnd > 7u * dit)
+    extra = (uint16_t)(extra + config.firstExt);
+  return extra;
+}
 
 static void markOn(uint16_t flags, uint32_t now) {
   outKey(true, (flags & EVK_TX) != 0, now);
@@ -192,6 +212,7 @@ static void markOn(uint16_t flags, uint32_t now) {
 static void markOff(uint32_t now) {
   if (!outKeyIsDown())
     return;
+  lastMarkEnd = now;
   outKey(false, false, now);
   push(EV_KEY, 0, markFlags);
 }
@@ -209,7 +230,7 @@ static bool ditMem = false, dahMem = false;
 static bool inChar = false, inWord = false;
 static bool mDown = false; // straight key closed
 static uint32_t kUntil = 0, kLastEnd = 0, kIdleSince = 0, kMarkStart = 0;
-static uint16_t kGapBefore = 0;
+static uint16_t kGapBefore = 0, kComp = 0;
 static char pat[12];
 static uint8_t patLen = 0;
 static Timing kT;
@@ -273,6 +294,7 @@ static void kStart(char e, uint32_t now, bool tx) {
   inChar = inWord = true;
   ditMem = dahMem = false;
   uint16_t on = (e == '.') ? kT.ditOn : kT.dahOn;
+  uint16_t extra = txExtra(tx, now, kT.dit, kComp);
   markOn(tx ? EVK_TX : 0, now);
   if (e == '.')
     ledDit(true);
@@ -280,7 +302,7 @@ static void kStart(char e, uint32_t now, bool tx) {
     ledDah(true);
   addElement(e, on, gap);
   ks = K_MARK;
-  kUntil = now + on;
+  kUntil = now + on + extra;
 }
 
 static void manualPress(uint32_t now, uint16_t flags) {
@@ -391,7 +413,7 @@ static void autoTick(uint32_t now, bool d, bool h, bool tx) {
           ditMem = ditMem && d;
       }
       ks = K_GAP;
-      kUntil = now + kT.elGap;
+      kUntil = now + (kT.elGap > kComp ? kT.elGap - kComp : 1);
     }
     break;
   case K_GAP:
@@ -415,6 +437,7 @@ enum PPhase : uint8_t { P_IDLE, P_MARK, P_GAP, P_WAIT };
 static PPhase pp = P_IDLE;
 static const char *pPat = nullptr;
 static uint8_t pIdx = 0, pProf = 0;
+static uint16_t pComp = 0;
 static uint32_t pUntil = 0;
 static bool pRun = false, pActive = false;
 static Timing pT;
@@ -432,13 +455,14 @@ static void playerClear(uint32_t now) {
 static void pStartMark(uint32_t now, bool practice) {
   bool tx = pProf == PROF_TX && !practice && config.output != OUT_OFF;
   char e = pPat[pIdx];
+  uint16_t extra = txExtra(tx, now, pT.dit, pComp);
   markOn((uint16_t)(EVK_PLAYER | (tx ? EVK_TX : 0)), now);
   if (e == '.')
     ledDit(true);
   else
     ledDah(true);
   pp = P_MARK;
-  pUntil = now + (e == '.' ? pT.ditOn : pT.dahOn);
+  pUntil = now + (e == '.' ? pT.ditOn : pT.dahOn) + extra;
 }
 
 static void playerTick(uint32_t now, bool practice) {
@@ -508,7 +532,7 @@ static void playerTick(uint32_t now, bool practice) {
     markOff(now);
     ledsOff();
     pp = P_GAP;
-    pUntil = now + pT.elGap;
+    pUntil = now + (pT.elGap > pComp ? pT.elGap - pComp : 1);
     break;
   case P_GAP:
     pIdx++;
@@ -593,18 +617,32 @@ static bool tick(repeating_timer_t *) {
     endTune(now);
   }
 
-  // Paddles mode MIDI: the raw contacts, only while transmitting is allowed.
-  // A contact still "on" when that changes is released.
-  static bool midiDit = false, midiDah = false;
-  bool padTx = tx && config.midiMode == MIDI_PADDLES;
-  bool wantDit = padTx && d, wantDah = padTx && h;
-  if (wantDit != midiDit) {
-    midiDit = wantDit;
-    push(EV_PADDLE, wantDit ? 'd' : 'D');
+  // PTT held + paddle: the press is a command, nothing is keyed until the
+  // button and both paddles are released.
+  static bool cmdLatch = false;
+  if (!cmdLatch && cmdHeld && (dr || hr)) {
+    cmdLatch = true;
+    keyerClear(now);
   }
-  if (wantDah != midiDah) {
-    midiDah = wantDah;
-    push(EV_PADDLE, wantDah ? 'h' : 'H');
+  if (cmdLatch) {
+    if (dr)
+      push(EV_CMD, '.');
+    if (hr)
+      push(EV_CMD, '-');
+    if (!cmdHeld && !d && !h)
+      cmdLatch = false;
+  }
+
+  // The raw contacts, for MIDI paddles mode and the vBand/Vail Ctrl keys.
+  static bool rawDit = false, rawDah = false;
+  bool pd = d && !cmdLatch, ph = h && !cmdLatch;
+  if (pd != rawDit) {
+    rawDit = pd;
+    push(EV_PADDLE, pd ? 'd' : 'D');
+  }
+  if (ph != rawDah) {
+    rawDah = ph;
+    push(EV_PADDLE, ph ? 'h' : 'H');
   }
 
   if (tuneReq) {
@@ -625,6 +663,9 @@ static bool tick(repeating_timer_t *) {
   if (tuning) {
     if (dr || hr || (int32_t)(now - tuneUntil) >= 0)
       endTune(now);
+  } else if (cmdLatch) {
+    beepTick(now);
+    playerTick(now, practice);
   } else {
     beepTick(now);
     if ((d || h) && (pp != P_IDLE || tqHead != tqTail)) {
@@ -680,6 +721,10 @@ void engineTrainSpeed(int wpm, int eff) {
   trainEff = (eff > 0 && eff < wpm) ? eff : 0;
   trainWpm = wpm;
 }
+void engineSoftPaddle(uint8_t bits) { softPad = bits & 3; }
+void engineCommandHold(bool held) { cmdHeld = held; }
+void engineContestSpacing(bool on) { ctSpace = on; }
+
 bool enginePracticeActive() { return (int32_t)(practiceUntil - millis()) > 0; }
 bool enginePlayerBusy() { return pp != P_IDLE || tqHead != tqTail; }
 bool engineKeyerBusy() { return ks != K_IDLE || mDown || padDit || padDah || inChar; }

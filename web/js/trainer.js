@@ -11,6 +11,7 @@ const TPrefs = {
     this.d = Object.assign({
       sound: "device", echoGroup: 1, echoPool: "koch", reveal: false, copyGroup: 3, copyPool: "koch",
       callMode: "hear", wordSet: "words", wordMode: "hear", codeMode: "hear", codeSet: "all", showQso: false,
+      ownText: "", ownUnit: "words", ownOrder: "order", ownMode: "hear",
     }, p);
     return this.d;
   },
@@ -462,6 +463,34 @@ Pages.train = (() => {
     });
   }
 
+  // Your own list: words, calls, phrases or a whole text.
+  function viewOwn() {
+    const ta = h("textarea.own", { rows: 4, spellcheck: "false", "aria-label": "your text",
+      placeholder: "Paste or type anything: calls, words, contest exchanges, a QSO, a story…",
+      oninput: (e) => TPrefs.set("ownText", e.target.value) });
+    ta.value = TPrefs.d.ownText || "";
+    let pos = 0;
+    const clean = (t) => Array.from(normalize(t)).filter((c) => c === " " || patternOf(c)).join("").replace(/\s+/g, " ").trim();
+    const items = () => {
+      const t = TPrefs.d.ownText || "";
+      return (TPrefs.d.ownUnit === "lines" ? t.split(/\n+/) : t.split(/\s+/)).map(clean).filter(Boolean);
+    };
+    return itemTrainer({
+      id: "own", modeKey: "ownMode", ramp: false,
+      intro: "Your own words, calls or text: paste them above, then copy or key them one by one.",
+      next: () => {
+        const list = items();
+        if (!list.length) { toast("Type or paste some text first", "err"); return ""; }
+        if (TPrefs.d.ownOrder === "random") return pick(list);
+        return list[pos++ % list.length];
+      },
+      pre: () => ta,
+      extra: () => [segPref("ownUnit", ["words", "lines"], ["Words", "Lines"], () => { pos = 0; }),
+        segPref("ownOrder", ["order", "random"], ["In order", "Random"], () => { pos = 0; })],
+      hint: "The text stays in this browser. Lines sends a whole line at a time: good for QSO phrases and contest exchanges.",
+    });
+  }
+
   // ---------- 6. codes: Q-codes, abbreviations, prosigns ----------
   function viewCodes() {
     const st = stage();
@@ -840,6 +869,7 @@ Pages.train = (() => {
     mycall: ["Your callsign", "user", "Hear your own call faster and faster, or key it cleanly.", viewMyCall],
     calls: ["Callsigns", "id", "Random calls from real prefixes, speed goes up as you get them.", viewCalls],
     words: ["Words and abbreviations", "book", "Common words, ham abbreviations and Q-codes as whole words.", viewWords],
+    own: ["Your own text", "list", "Paste calls, words or a text and copy or key it.", viewOwn],
     codes: ["Q-codes and prosigns", "chat", "What QRL, QSB, <KN> and friends mean, with a reference.", viewCodes],
     qso: ["QSO practice", "radio", "Answer a CQ, call CQ, a contest and a park activation.", viewQso],
     head: ["Head copy", "pen", "Copy a complete QSO, over by over, and get a score.", viewHead],

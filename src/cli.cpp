@@ -9,6 +9,7 @@
 #include "ptt.h"
 #include "usbio.h"
 #include "web.h"
+#include "wk.h"
 #include <FatFS.h>
 
 static CliSession serialSession(Serial);
@@ -25,7 +26,8 @@ void cliHelp(Print &o) {
   o.println(F("!  !keyer iambicA|iambicB|ultimatic|bug|straight"));
   o.println(F("!  !output key|audio|off key the radio, audio + PTT, or practice"));
   o.println(F("!  !send <text>          send text (same as typing it)"));
-  o.println(F("!  !mem <1..6>           send a memory"));
+  o.println(F("!  !mem <1..6>           send a memory ({nr} in it sends the serial number)"));
+  o.println(F("!  !nr [n]               contest serial number, e.g. !nr 1 for a new contest"));
   o.println(F("!  !beacon on|off        repeat beaconText every beaconEvery seconds"));
   o.println(F("!  !tune [seconds|off]   key down to tune (default 5 s, max 20)"));
   o.println(F("!  !practice on|off      no TX for 10 minutes, or until off"));
@@ -76,7 +78,14 @@ static void status(Print &o) {
   o.print(onoff(config.keyboard));
   o.print(F(" (active "));
   o.print(onoff(usbKeyboardActive()));
+  o.print(F(", "));
+  o.print(cfgEnumName(cfgFind("keyboardMode"), config.keyboardMode));
   o.println(F(")"));
+  o.print(F("!winkeyer "));
+  o.print(onoff(config.winkeyer));
+  if (wkOpen())
+    o.print(F(" (open by a logger)"));
+  o.println();
   o.print(F("!drive "));
   o.print(onoff(usbDriveActive()));
   if (usbDriveMounted())
@@ -245,11 +254,12 @@ void cliExec(const char *lineIn, Print &o) {
     }
   } else if (!strcasecmp(head, "defaults")) {
     bool all = argLower == "all";
-    int oldMidi = config.midi, oldKbd = config.keyboard, oldNet = config.network, oldPort = config.tcpPort;
+    int oldMidi = config.midi, oldKbd = config.keyboard, oldNet = config.network, oldPort = config.tcpPort,
+        oldUdp = config.cwdaemonPort;
     String oldIp = config.ip;
     configDefaults(config, !all);
     if (oldMidi != config.midi || oldKbd != config.keyboard || oldNet != config.network ||
-        oldPort != config.tcpPort || oldIp != config.ip)
+        oldPort != config.tcpPort || oldUdp != config.cwdaemonPort || oldIp != config.ip)
       configSetRestartNeeded();
     configMarkDirty();
     cliApplied("keyer");
@@ -353,6 +363,14 @@ void cliBegin() { serialSession.reset(); }
 
 void cliTick() {
   int n = 0;
-  while (Serial.available() && n++ < 256)
-    serialSession.feed((char)Serial.read());
+  while (Serial.available() && n++ < 256) {
+    uint8_t b = (uint8_t)Serial.read();
+    bool was = wkActive();
+    if (wkFeed(b)) {
+      if (!was)
+        serialSession.reset(); // a logger took over the port
+      continue;
+    }
+    serialSession.feed((char)b);
+  }
 }

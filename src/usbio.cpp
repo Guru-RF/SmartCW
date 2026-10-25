@@ -66,3 +66,12 @@ void usbTypeChar(char c) {
     return;
   Keyboard.write((uint8_t)c);
 }
+
+void usbKey(uint8_t key, bool down) {
+  if (!kbdOn)
+    return;
+  if (down)
+    Keyboard.press(key);
+  else
+    Keyboard.release(key);
+}

@@ -57,6 +57,9 @@ button .i,a.btn .i{width:16px;height:16px}
 .warn{background:#ff6b6b1a;border:1px solid #ff6b6b55;color:#f3c1bc;border-radius:10px;padding:10px 14px;margin:0 0 14px;font-size:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 #banner{max-width:1180px;margin:0 auto;padding:0 20px}
 .bar-warn{margin:14px 0 0}
+.warn.note{background:#2a7fff1a;border-color:#2a7fff55;color:#cfe0ff}
+.steps.nr{grid-template-columns:minmax(0,220px);margin:12px 0 0}
+small.dim{color:var(--dim)}
 .hint{color:var(--dim);font-size:13px;margin:10px 0 0}
 code,.code{background:#1d2c44;color:#bcd;padding:1px 6px;border-radius:5px;font-size:13px}
 pre.code{display:block;padding:10px 12px;white-space:pre-wrap}
@@ -349,3 +352,4 @@ ol.howto li{margin:4px 0}
   nav{gap:2px}
   .seg button{padding:7px 9px}
 }
+.trainer textarea.own{margin:0 0 12px;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}

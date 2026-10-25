@@ -12,6 +12,12 @@ enum OutputMode { OUT_KEY, OUT_AUDIO, OUT_OFF };
 //   KEYED   : the keyer's output as one note (key down = note on)
 //   PADDLES : the raw paddle contacts as two notes, the SDR does the keying
 enum MidiMode { MIDI_KEYED, MIDI_PADDLES };
+// What the USB keyboard types.
+//   TEXT : decoded CW as letters
+//   CTRL : the paddle contacts as Left / Right Ctrl, for vBand and Vail
+enum KeyboardMode { KBD_TEXT, KBD_CTRL };
+// Cut numbers in contest serial numbers: 0 as T, and 9 as N.
+enum CutNumbers { CUT_OFF, CUT_T, CUT_TN };
 
 #define CFG_MEMS 6
 #define CFG_TEXT 72
@@ -33,6 +39,8 @@ struct Config {
   int output;     // OutputMode
   int pttLead;    // ms between PTT and the first tone (audio mode)
   int pttTail;    // ms PTT hang after the last tone (audio mode)
+  int keyComp;    // ms added to every transmitted mark, taken from the space after it
+  int firstExt;   // ms added to the first transmitted mark after a pause
   // text sending
   int farnsworth; // effective wpm for spacing, 0 = off
   // trainer
@@ -48,18 +56,23 @@ struct Config {
   int midiDitNote;
   int midiDahNote;
   // computer
-  bool keyboard;  // type decoded CW as USB keystrokes
+  bool keyboard;  // USB keyboard interface
+  int keyboardMode; // KeyboardMode
+  bool winkeyer;  // answer WinKeyer host commands on the USB serial port
   // station
   char call[16];
   char name[20];
   // memories and beacon
   char mem[CFG_MEMS][CFG_TEXT];
+  int nr;          // contest serial number, sent by {nr}
+  int cutNumbers;  // CutNumbers, for {nr}
   char beaconText[CFG_TEXT];
   int beaconEvery; // seconds between beacon transmissions
   // network (USB Ethernet)
   bool network;
   char ip[16];
   int tcpPort;
+  int cwdaemonPort; // UDP, 0 = off
 };
 
 extern Config config;
@@ -99,14 +112,21 @@ void configJsonValues(String &out); // {"wpm":18,...}
 void configJsonMeta(String &out);   // [{"k":"wpm","t":"int",...},...]
 
 int configDitMs();
-// Text with {call} / {name} expanded.
-String configExpand(const char *text);
+// Text with {call} / {name} / {nr} / {lastnr} expanded. usedNr is set when
+// the text sends the current serial number, which then has to advance.
+String configExpand(const char *text, bool *usedNr = nullptr);
+String configSerial(int nr); // padded to three digits, cut numbers applied
 
 // Mount FatFS (format on failure), handle the "firmwareupdate" trigger and
 // load /config.txt, writing the default file when it is missing or empty.
 // Returns false when the filesystem is unusable.
 bool configBegin();
 bool configSave();
+// Applied to a copy of the settings just before config.txt is written: lets
+// temporary changes (a logger's WinKeyer session) stay out of the file.
+extern void (*configSaveFilter)(Config &c);
+// Called when a setting changed through cfgSet (serial, TCP, web).
+extern void (*configSetHook)(const struct CfgItem *it);
 unsigned long configLastWriteMs(); // duration of the last config.txt write
 
 // Settings changed at runtime are saved automatically once things are quiet.

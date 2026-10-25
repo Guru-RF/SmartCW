@@ -1,6 +1,6 @@
 # SmartCW – Interoperability
 
-How SmartCW talks to the computer: USB MIDI, USB keyboard, the serial and TCP text protocol, and the web API. For the hardware, the settings and building see [README.md](README.md).
+How SmartCW talks to the computer: USB MIDI, USB keyboard, the serial and TCP text protocol, WinKeyer, cwdaemon and the web API. For the hardware, the settings and building see [README.md](README.md).
 
 SmartCW is a composite USB device (VID `0x1209`, PID `0xFF42`, product string `SmartCW`, manufacturer `RF.Guru`). Which interfaces it presents depends on `config.txt` and on what is held while plugging in:
 
@@ -12,7 +12,7 @@ SmartCW is a composite USB device (VID `0x1209`, PID `0xFF42`, product string `S
 | USB HID keyboard | `keyboard: true`, or PTT held while plugging in; the PID becomes `0xFF43` |
 | USB mass storage | both paddles held while plugging in, or the `!drive` command |
 
-All interfaces are registered right after power-up, before the host has finished enumerating, so the computer normally sees the complete device once. Changing `midi`, `keyboard`, `network`, `ip` or `tcpPort` needs a restart.
+All interfaces are registered right after power-up, before the host has finished enumerating, so the computer normally sees the complete device once. Changing `midi`, `keyboard`, `network`, `ip`, `tcpPort` or `cwdaemonPort` needs a restart.
 
 ---
 
@@ -62,6 +62,10 @@ The PTT button sends a **pulse**: map it to a toggle in your software. Holding i
 2. Keyed mode: map note 65 (and 64 for a straight key) to "CW key", note 66 to "PTT toggle". If the program has one CW input only, set `midiStraightNote` equal to `midiCwNote`.
 3. Paddles mode: map note 67 to "dit paddle" and 68 to "dah paddle".
 
+### Vail
+
+The Vail adapter sends note 0 for keyed output and the straight key, and notes 1 and 2 for the raw dit and dah paddles. *Vail notes* in Settings → USB MIDI sets `midiCwNote` and `midiStraightNote` to 0, `midiDitNote` to 1 and `midiDahNote` to 2 (*SmartCW notes* puts the defaults back). With `midiMode: keyed` choose *Straight key* as Vail's keyer; with `midiMode: paddles` Vail keys. Vail's MIDI control messages (speed, tone, keyer type) are ignored: set those on SmartCW.
+
 ### Testing on a computer
 
 ```bash
@@ -92,6 +96,18 @@ SmartCW also enumerates as a standard HID keyboard (US layout) and types what it
 
 Turn it on for one session by holding PTT while plugging in, or permanently with `keyboard: true` (web: Settings → Computer, then restart). On a host with a non-US layout some punctuation may come out as a different symbol; letters and digits are unaffected.
 
+### Paddle keys for vBand and Vail (`keyboardMode: ctrl`)
+
+With `keyboardMode: ctrl` the keyboard types nothing; instead the paddle contacts hold keys, the convention of the vBand and Vail USB adapters:
+
+| Contact | Key |
+| --- | --- |
+| dit paddle | Left Ctrl, held while the paddle is closed |
+| dah paddle | Right Ctrl, held while the paddle is closed |
+| straight key (`keyer: straight`) | Left Ctrl |
+
+These are the raw contacts (after `paddleSwap`): the website does the keying. SmartCW's own sidetone and keyer keep running, so turn `buzzer` off or set `output: off` if you only want the website. No keys are held while practice mode is active (a trainer page is open). On Linux, keyd's default config maps Right Ctrl to Left Ctrl; keep Right Ctrl as itself for the dah paddle.
+
 ---
 
 ## 🔑 Key types
@@ -110,7 +126,7 @@ The keyer decodes exactly from its own elements. The straight key and the bug's 
 
 ## 🔌 Serial and TCP protocol
 
-The USB serial port (`/dev/ttyACM*`, `/dev/tty.usbmodem*`, `COMx`; any baud rate, DTR asserted) and the TCP port (`nc 192.168.7.1 23`, `telnet 192.168.7.1`) speak the same protocol. Telnet option negotiation is ignored.
+The USB serial port (`/dev/ttyACM*`, `/dev/tty.usbmodem*`, `COMx`; any baud rate, DTR asserted) and the TCP port (`nc 192.168.7.1 23`, `telnet 192.168.7.1`) speak the same protocol. Telnet option negotiation is ignored. On the serial port a `0x00` or `0x13` byte switches to the WinKeyer protocol (see below) until the logger closes it.
 
 ### Data stream
 
@@ -136,7 +152,8 @@ A line starting with `!` is a command, ended by CR or LF. Every response line st
 | `!get <setting>`, `!<setting>` | one setting |
 | `!set <setting> <value>`, `!<setting> <value>` | change a setting, e.g. `!wpm 22`, `!keyer iambicA`, `!output audio`, `!mem1 CQ TEST {call}` |
 | `!send <text>` | send text (same as typing it) |
-| `!mem <1..6>` | send a memory |
+| `!mem <1..6>` | send a memory; `{nr}` in it sends the serial number, which then moves on |
+| `!nr [n]` | show or set the contest serial number (a setting like any other) |
 | `!beacon on/off` | repeat `beaconText` every `beaconEvery` seconds |
 | `!tune [1..20 / off]` | key down to tune, default 5 s |
 | `!practice on/off` | no TX for 10 minutes, or until off |
@@ -150,7 +167,7 @@ A line starting with `!` is a command, ended by CR or LF. Every response line st
 | `!reboot` | restart |
 | `!bootloader` | restart into the UF2 bootloader |
 
-The boot banner, sent about 1.5 s after power-up, starts with `!SmartCW 2.1.0 ready` and ends with `!type text to send CW, !help for commands`. A TCP client gets a one-line greeting.
+The boot banner, sent about 1.5 s after power-up, starts with `!SmartCW 2.2.0 ready` and ends with `!type text to send CW, !help for commands`. A TCP client gets a one-line greeting.
 
 ### Minimal client (Python)
 
@@ -166,13 +183,47 @@ For the serial port use `serial.Serial("/dev/ttyACM0", 115200)` from pyserial th
 
 ---
 
+## 🏆 WinKeyer
+
+The USB serial port answers the K1EL WinKeyer host protocol, so contest loggers can use SmartCW wherever they support a WinKeyer. SmartCW behaves as a **WinKeyer 2, version 23** (`Host Open` returns 23) and also accepts the WK3 admin commands.
+
+- **Switching over.** The first `0x00` (admin) or `0x13` (null) byte switches the serial port to WinKeyer; from then on SmartCW's own text and `!` lines no longer appear on the serial port (they still go to TCP and the web page). `Host Close`, `Reset`, the logger dropping DTR or, before `Host Open`, printable text after 2 s of silence switch back to the text protocol. `winkeyer: false` turns all of this off.
+- **1200 baud.** Loggers open the port at 1200 baud and drop DTR when they close it, which on an RP2040 normally means "reboot into the bootloader". With `winkeyer: true` that trigger is disabled; use `!bootloader`, the web page or BOOTSEL for firmware updates.
+- **Settings.** While a logger has the interface open, its `Load Defaults` and individual commands set speed (5–99 wpm, `0` = SmartCW's own speed), weight, dah ratio, sidetone frequency (WK2 table, or 62500/n in WK3 mode), sidetone on/off (PINCFG bit 1 = `buzzer`), key mode and paddle swap, autospace, contest spacing, PTT lead and tail (`pttLead`, `pttTail`), keying compensation (`keyComp`) and first extension (`firstExt`). They are not written to `config.txt`; SmartCW's own values come back at `Host Close`. A straight key stays straight whatever the key mode says. A setting changed on the web page or by command during the session is yours and stays.
+- **Text.** Letters, digits and the WinKeyer punctuation and prosign mappings (`<` AR, `>` SK, `:` and `]` KN, `[` AS, `;` AA, `\` DN, ...) are queued in a 192-entry buffer and keyed one character at a time. Buffered commands act at their place in the text: speed change and cancel, wait, key down, merge letters. Backspace, Clear Buffer and Pause work.
+- **Back to the logger.** Status bytes (busy, break-in, wait, XOFF above 2/3 full, key down in WK1 mode) whenever they change and on request; serial echo after each character is sent and paddle echo of decoded characters when enabled in the mode register; speed pot bytes (`Get Speed Pot`, and whenever the speed is changed with PTT + paddle); `Get Values`; pushbutton status (PTT = pushbutton 1) in WK2 mode.
+- **Paddles.** Break-in clears the buffer and drops text from the logger until one word space after the last element, as on a WinKeyer. `Software Paddle` and `Key Immediate` (tune, up to 20 s) work.
+- **Not supported.** HSCW, Farnsworth from the logger, paddle-only sidetone, buffered PTT, pointer commands (their bytes are consumed), standalone messages from EEPROM (`Send Message n` sends SmartCW's memory n), RTTY.
+
+## 📡 cwdaemon
+
+With the USB network on, SmartCW listens for [cwdaemon](https://github.com/acerion/cwdaemon) requests on UDP port `cwdaemonPort` (6789, `0` = off).
+
+| Request | Effect |
+| --- | --- |
+| text | sent as CW; `+` / `-` raise / lower the speed 2 wpm for the rest of that text; `*` AR, `=` BT, `<` SK, `(` KN, `!` SN, `&` AS, `>` BK; `~` is ignored |
+| `text^` | as text, and `text` comes back once it has been sent |
+| `<ESC>h<reply>` | the next text request replies `h<reply>` once it has been sent |
+| `<ESC>0` | stop sending, forget a pending reply |
+| `<ESC>2<wpm>` | speed, saved like any setting |
+| `<ESC>3<Hz>` | tone; `0` turns the buzzer off, the next tone turns it back on |
+| `<ESC>4` | abort; a pending reply is answered with `break` |
+| `<ESC>7<-50..50>` | weight (0 = standard) |
+| `<ESC>c<s>` | tune, up to 10 s |
+| `<ESC>d<ms>` | PTT lead (`pttLead`), 0–50 |
+| `<ESC>5 6 8 9 a b e f g` | accepted and ignored |
+
+Replies go to the address and port of the last request, ending in CR LF. A paddle press aborts cwdaemon text like any other text (and answers a pending reply with `break`).
+
+---
+
 ## 🧩 Web API
 
 Plain HTTP on port 80. Requests are `GET` or `POST` with url-encoded form fields; responses are JSON unless noted. CORS is open (`Access-Control-Allow-Origin: *`), so your own pages can use the API.
 
 | Request | Fields | Effect / response |
 | --- | --- | --- |
-| `GET /api/state` | | `{"v", "up", "cfg": {every setting}, "rt": {"midi", "kbd", "drive", "ip", "beacon", "practice", "busy", "tune", "restart", "dirty", "web", "tcp"}}` |
+| `GET /api/state` | | `{"v", "up", "cfg": {every setting}, "rt": {"midi", "kbd", "drive", "ip", "beacon", "practice", "busy", "tune", "wk", "restart", "dirty", "web", "tcp"}}`; `wk` is true while a logger has the WinKeyer open |
 | `GET /api/meta` | | every setting: key, type, section, help, min/max, default, options, restart flag |
 | `POST /api/set` | `setting=value&...` | changes settings; `{"ok", "err": {setting: message}, "restart"}`; valid fields apply even when others fail |
 | `POST /api/defaults` | `scope=all` (optional) | factory settings; returns the new state |

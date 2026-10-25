@@ -427,10 +427,20 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+// Contest serial number as SmartCW sends it: three digits, cut numbers applied.
+function fmtNr(n) {
+  let s = String(Math.max(1, Number(n) || 1)).padStart(3, "0");
+  if (App.cfg.cutNumbers === "t" || App.cfg.cutNumbers === "tn") s = s.replace(/0/g, "T");
+  if (App.cfg.cutNumbers === "tn") s = s.replace(/9/g, "N");
+  return s;
+}
+function expandNr(text) {
+  return text.replace(/\{lastnr\}/gi, fmtNr((App.cfg.nr || 1) - 1)).replace(/\{nr\}/gi, fmtNr(App.cfg.nr));
+}
 function expand(text) {
-  return String(text || "").replace(/\{call\}/gi, App.cfg.call || "").replace(/\{name\}/gi, App.cfg.name || "");
+  return expandNr(String(text || "").replace(/\{call\}/gi, App.cfg.call || "").replace(/\{name\}/gi, App.cfg.name || ""));
 }
 // For labels: placeholders stay visible while call / name are not set.
 function expandShow(text) {
-  return String(text || "").replace(/\{call\}/gi, App.cfg.call || "{call}").replace(/\{name\}/gi, App.cfg.name || "{name}");
+  return expandNr(String(text || "").replace(/\{call\}/gi, App.cfg.call || "{call}").replace(/\{name\}/gi, App.cfg.name || "{name}"));
 }

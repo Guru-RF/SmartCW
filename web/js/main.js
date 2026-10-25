@@ -20,6 +20,7 @@
       banner.appendChild(h("div.warn.bar-warn", "USB or network settings changed: they apply after a restart. ",
         h("button.sm", { type: "button", onclick: async () => { await post("/api/restart"); toast("Restarting…"); } }, "Restart now")));
     }
+    if (App.rt.wk) banner.appendChild(h("div.warn.note.bar-warn", "A contest logger has SmartCW open as a WinKeyer: its speed, weight and tone apply until it closes, then yours come back."));
     if (App.rt.drive) banner.appendChild(h("div.warn.bar-warn", "The SMARTCW drive is open on your computer: settings changed here are not saved, the config.txt on the drive wins when it is ejected."));
     $("#ftr-ver").textContent = "SmartCW " + App.v;
   });

@@ -11,6 +11,7 @@
 #include "cli.h"
 #include "config.h"
 #include "crash.h"
+#include "cwd.h"
 #include "engine.h"
 #include "hub.h"
 #include "leds.h"
@@ -18,6 +19,7 @@
 #include "pins.h"
 #include "ptt.h"
 #include "usbio.h"
+#include "wk.h"
 #include <Arduino.h>
 
 void setup() {
@@ -33,6 +35,13 @@ void setup() {
   Serial.begin(115200);
 
   bool fsOk = configBegin();
+  // A logger's WinKeyer settings and a cwdaemon "+/-" speed step are
+  // temporary: config.txt keeps the operator's own.
+  configSetHook = wkUserSet;
+  configSaveFilter = [](Config &c) {
+    wkPersistView(c);
+    cwdPersistView(c);
+  };
   engineBegin(); // the keyer works from here on, USB or not
   keyboardMode = keyboardMode || config.keyboard;
 
@@ -88,6 +97,7 @@ void loop() {
   timed(0, t);
   pttTick();
   cliTick();
+  wkTick();
   timed(1, t);
   netTick();
   timed(2, t);

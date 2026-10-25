@@ -20,12 +20,13 @@ Pages.system = (() => {
       r("Uptime", fmtUptime(App.up)),
       r("Key type", c.keyer || "-"),
       r("Output", c.output + (rt.practice ? " (practice held by a trainer)" : "")),
-      r("USB serial", yes(true)),
+      r("USB serial", c.winkeyer ? h("span", yes(true), rt.wk ? "  ·  WinKeyer open by a logger" : "  ·  WinKeyer ready") : yes(true)),
       r("USB MIDI", yes(rt.midi, rt.midi ? "(" + c.midiMode + ")" : "")),
-      r("USB keyboard", yes(rt.kbd)),
+      r("USB keyboard", yes(rt.kbd, rt.kbd ? "(" + (c.keyboardMode === "ctrl" ? "paddle keys" : "typing") + ")" : "")),
       r("USB drive", yes(rt.drive)),
       r("Web", h("span", "http://" + rt.ip + "/  ·  http://smartcw.local/  ·  " + rt.web + " open")),
       r("TCP port", h("span", String(c.tcpPort) + "  ·  " + rt.tcp + " connected")),
+      r("cwdaemon", c.cwdaemonPort ? "UDP port " + c.cwdaemonPort : yes(false)),
       r("Settings", rt.dirty ? "saving…" : "saved to config.txt"),
       rt.restart ? h("div.warn", "Some changes need a restart. ", h("button.sm", { type: "button", onclick: restart }, "Restart now")) : null,
     ].filter(Boolean));
@@ -111,6 +112,11 @@ Pages.system = (() => {
           h("tr", h("td", "Straight key"), h("td", h("code", "note " + App.cfg.midiStraightNote))),
           h("tr", h("td", "PTT button, audio-mode PTT"), h("td", h("code", "note " + App.cfg.midiPttNote))),
           h("tr", h("td", "Dit / dah contact (paddles mode)"), h("td", h("code", "notes " + App.cfg.midiDitNote + " / " + App.cfg.midiDahNote))))),
+        h("h4", "Contest loggers"),
+        h("p", "WinKeyer: in N1MM+, DXLog, Win-Test, fldigi, CQRLOG or any WinKeyer logger, pick SmartCW's serial port as a WinKeyer (WK2). " +
+          "cwdaemon: point CQRLOG, TLF or xlog at " + (App.rt.ip || "192.168.7.1") + " port " + (c.cwdaemonPort || 6789) + "."),
+        h("h4", "Internet CW (vBand, Vail)"),
+        h("p", "Settings → Computer: USB keyboard on, keyboard sends Paddle keys. The paddles become Left and Right Ctrl. Or use MIDI with the Vail notes."),
         h("h4", "TCP and serial"),
         h("p", "Characters you send are keyed, decoded paddle input comes back as text. Lines starting with ! are commands."),
         h("pre.code", `nc ${App.rt.ip || "192.168.7.1"} ${c.tcpPort}\n!wpm 22\ncq cq de ${(c.call || "on6ure").toLowerCase()} k`),
@@ -119,7 +125,7 @@ Pages.system = (() => {
     };
     Bus.on("state", render);
     render();
-    return card("network", "Connect your software", "MIDI notes, TCP and the API", t);
+    return card("network", "Connect your software", "MIDI, loggers, internet CW, TCP and the API", t);
   }
 
   async function restart() {
