@@ -1,6 +1,18 @@
 /* Settings page: every setting, applied immediately and saved by SmartCW. */
 "use strict";
 
+// Two columns that line up. The first cards of each side form one block whose
+// bottoms meet (the shorter side's last card stretches); the remaining cards
+// sit side by side in rows, so each pair has the same height.
+function pairLayout(headL, headR, left, right) {
+  const l = [...left.children], r = [...right.children];
+  const grid = h("div.pgrid", h("div.pcol", l.slice(0, headL)), h("div.pcol", r.slice(0, headR)));
+  const restL = l.slice(headL), restR = r.slice(headR);
+  for (let i = 0; i < Math.max(restL.length, restR.length); i++)
+    grid.append(restL[i] || h("div"), restR[i] || h("div"));
+  return grid;
+}
+
 Pages.settings = (() => {
   let built = false;
   let savedChip;
@@ -22,7 +34,7 @@ Pages.settings = (() => {
         h("p.sub", "Changes apply at once and SmartCW saves them to config.txt a moment later. Settings marked restart change the USB layout and take effect after a restart.")),
       h("div.actions.top", savedChip,
         h("button", { type: "button", onclick: resetDefaults }, icon("sync"), "Reset to defaults")),
-      h("div.cols",
+      pairLayout(2, 3,
         h("div",
           card("key", "Keyer", "Key type, speed and the feel of the paddles",
             row("Key type", "a long press on the PTT button toggles straight",

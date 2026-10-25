@@ -105,6 +105,10 @@ label.check.small{font-size:13px;color:var(--dim)}
 .rnote{color:var(--accent);font-weight:500;font-size:11.5px}
 .fld{margin:0 0 14px}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;align-items:start}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch;margin-bottom:18px}
+.pcol{display:flex;flex-direction:column;gap:18px}
+.pgrid .dp-card{margin:0}
+.pcol>.dp-card:last-child{flex:1}
 .inl{display:flex;align-items:center;gap:8px}
 
 /* switch, segmented, range (OpenX6X00) */
@@ -317,6 +321,7 @@ ol.howto li{margin:4px 0}
   .live-grid{grid-template-columns:1fr}
   .col-a{max-width:560px;margin:0 auto;width:100%}
   .cols{grid-template-columns:1fr}
+  .pgrid{grid-template-columns:1fr}
 }
 @media (max-width:640px){
   main{padding:18px 16px}
