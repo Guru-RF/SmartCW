@@ -495,7 +495,7 @@ static void playerTick(uint32_t now, bool practice) {
       if (trainWpm)
         calcTiming(pT, trainWpm, trainEff);
       else
-        calcTiming(pT, config.trainWpm, config.trainEff);
+        calcTiming(pT, config.wpm, config.trainEff);
       outSetTone(config.trainTone ? config.trainTone : config.tone);
     } else {
       calcTiming(pT, config.wpm, config.farnsworth);

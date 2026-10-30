@@ -44,7 +44,6 @@ struct Config {
   // text sending
   int farnsworth; // effective wpm for spacing, 0 = off
   // trainer
-  int trainWpm;
   int trainEff;   // Farnsworth effective wpm, 0 = off
   int trainTone;  // 0 = same as tone
   // USB MIDI

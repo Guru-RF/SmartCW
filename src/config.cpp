@@ -16,7 +16,7 @@ static const char *CONFIG_PATH = "/config.txt";
 static const CfgItem items[] = {
     E("keyer", keyer, "iambicA|iambicB|ultimatic|bug|straight", KM_IAMBIC_B, "keyer", 0,
       "key type on the paddle jack; a long press (1.5 s) on PTT toggles straight"),
-    I("wpm", wpm, 5, 99, 18, "keyer", 0, "keyer and text speed, words per minute"),
+    I("wpm", wpm, 5, 99, 18, "keyer", 0, "keyer, text and trainer speed, words per minute"),
     I("weight", weight, 25, 75, 50, "keyer", 0, "mark/space weighting in %, 50 = standard"),
     I("ratio", ratio, 25, 45, 30, "keyer", 0, "dah length in tenths of a dit, 30 = 3.0"),
     B("paddleSwap", paddleSwap, 0, "keyer", 0, "swap the dit and dah paddles"),
@@ -36,7 +36,6 @@ static const CfgItem items[] = {
 
     I("farnsworth", farnsworth, 0, 60, 0, "text", 0, "text sending: effective wpm for the spacing, 0 = off"),
 
-    I("trainWpm", trainWpm, 5, 60, 20, "trainer", 0, "trainer character speed, wpm"),
     I("trainEff", trainEff, 0, 60, 12, "trainer", 0, "trainer effective (Farnsworth) speed, 0 = off"),
     I("trainTone", trainTone, 0, 2000, 0, "trainer", 0, "trainer tone in Hz, 0 = same as the sidetone"),
 
@@ -568,8 +567,8 @@ bool configBegin() {
   }
 
   configParse(content.c_str(), config);
-  // Older files lack the newer keys: rewrite once so they show up.
-  if (content.indexOf("mem10") < 0)
+  // Older files lack the newer keys or keep retired ones: rewrite once.
+  if (content.indexOf("mem10") < 0 || content.indexOf("trainWpm") >= 0)
     writeFile(CONFIG_PATH, configToYaml(config));
   Serial.println("[cfg] config.txt loaded");
   return true;

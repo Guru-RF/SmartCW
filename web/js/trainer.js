@@ -94,7 +94,7 @@ Pages.train = (() => {
 
   // Play text with the trainer speed; resolves when it has been sent.
   function playTrain(text, opts = {}) {
-    const wpm = opts.wpm || App.cfg.trainWpm || 20;
+    const wpm = opts.wpm || App.cfg.wpm || 20;
     const eff = opts.eff !== undefined ? opts.eff : App.cfg.trainEff || 0;
     if (TPrefs.d.sound === "browser") {
       return Beep.play(text, wpm, App.cfg.trainTone || App.cfg.tone, eff);
@@ -159,7 +159,7 @@ Pages.train = (() => {
       },
     }, v === "device" ? "SmartCW" : "Browser")));
     return h("div.tbar",
-      stepper("trainWpm", "CHAR WPM", 1),
+      stepper("wpm", "WPM", 1),
       stepper("trainEff", "EFFECTIVE", 1, { fmt: (v) => (v ? v : "off"), zeroBelow: 5, zeroStart: 10 }),
       stepper("trainTone", "TONE", 10, { fmt: (v) => (v ? v + " Hz" : "keyer"), zeroBelow: 300, zeroStart: 600 }),
       h("div.tsnd", h("small", "SOUND"), snd),
@@ -362,7 +362,7 @@ Pages.train = (() => {
     const st = stage();
     const sc = scoreChips();
     const ans = h("input.tr-answer", { type: "text", autocomplete: "off", spellcheck: "false", placeholder: "type what you hear" });
-    let wpm = App.cfg.trainWpm || 20;
+    let wpm = App.cfg.wpm || 20;
     let n = 0, good = 0, streak = 0;
     const mode = () => TPrefs.d[cfg.modeKey];
     const update = () => {
@@ -373,7 +373,7 @@ Pages.train = (() => {
     };
     st.set("", "", "", cfg.intro);
     const run = async (t) => {
-      wpm = App.cfg.trainWpm || 20;
+      wpm = App.cfg.wpm || 20;
       while (alive(t)) {
         const item = normalize(cfg.next());
         if (!item) return;
@@ -398,7 +398,7 @@ Pages.train = (() => {
           ok = normalize(typed).replace(/\s+/g, " ").trim() === item;
           st.set(ok ? "ok" : "bad", dispText(item), item, ok ? "✓ Correct" : "You typed " + (dispText(typed) || "nothing"));
           if (cfg.ramp) {
-            if (ok) { wpm = Math.min(60, wpm + 2); if (Stats.best(cfg.id, wpm)) toast("New best: " + wpm + " wpm", "ok"); }
+            if (ok) { wpm = Math.min(99, wpm + 2); if (Stats.best(cfg.id, wpm)) toast("New best: " + wpm + " wpm", "ok"); }
             else wpm = Math.max(5, wpm - 2);
           }
         } else {

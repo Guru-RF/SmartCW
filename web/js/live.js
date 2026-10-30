@@ -140,7 +140,7 @@ Pages.live = (() => {
       onTap: (L) => {
         tree.path(MORSE[L]);
         setTimeout(() => { if (!keyPat && !padPat) tree.clear(); }, 900);
-        if (prefs.treeSound === "browser") Beep.play(L, App.cfg.trainWpm || 20);
+        if (prefs.treeSound === "browser") Beep.play(L, App.cfg.wpm || 20);
         else post("/api/send", { text: L, p: "practice" });
       },
     });

@@ -52,7 +52,7 @@ void engineResetKeyer(); // mode switch: release and drop any partial character
 void engineBeep(uint8_t count);
 void engineTune(uint32_t ms); // 0 stops
 void enginePractice(uint32_t ms); // no TX for this long (trainer heartbeat)
-// Speed for PROF_TRAIN text queued from now on; wpm 0 = trainWpm/trainEff from config.
+// Speed for PROF_TRAIN text queued from now on; wpm 0 = wpm/trainEff from config.
 void engineTrainSpeed(int wpm, int eff);
 // Paddle contacts from the host (WinKeyer software paddle): bit 0 dit, bit 1 dah.
 void engineSoftPaddle(uint8_t bits);

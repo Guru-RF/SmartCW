@@ -48,7 +48,7 @@ Plug SmartCW in and open **http://smartcw.local/** or **http://192.168.7.1/**. S
 | **Settings** | Every setting, applied at once and saved to `config.txt` a moment later, with a **Reset to defaults** button that keeps your callsign, name and memories |
 | **System** | Status, a command console, backup and restore of `config.txt`, firmware update and how to connect SDR software, loggers and internet CW |
 
-The trainer pages hold **practice mode** while they are open: SmartCW never transmits during training, and transmits normally again within ten seconds after you leave. Trainer speed (character and effective wpm) and pitch are separate from the keyer settings. Progress is kept in the browser and can be exported.
+The trainer pages hold **practice mode** while they are open: SmartCW never transmits during training, and transmits normally again within ten seconds after you leave. The trainer uses the keyer's speed (`wpm`): changing it on a trainer page changes it everywhere, and the other way round. Its effective (Farnsworth) speed and pitch are its own. Progress is kept in the browser and can be exported.
 
 | Trainer | Settings |
 | --- | --- |
@@ -113,7 +113,7 @@ Every setting can be changed in the web interface, with `!<setting> <value>` ove
 | Setting | Default | Range / options | What it does |
 | --- | --- | --- | --- |
 | `keyer` | `iambicB` | iambicA, iambicB, ultimatic, bug, straight | key type on the paddle jack; a long press (1.5 s) on PTT toggles straight |
-| `wpm` | `18` | 5..99 | keyer and text speed, words per minute |
+| `wpm` | `18` | 5..99 | keyer, text and trainer speed, words per minute |
 | `weight` | `50` | 25..75 | mark/space weighting in %, 50 = standard |
 | `ratio` | `30` | 25..45 | dah length in tenths of a dit, 30 = 3.0 |
 | `paddleSwap` | `off` | on, off | swap the dit and dah paddles |
@@ -128,7 +128,6 @@ Every setting can be changed in the web interface, with `!<setting> <value>` ove
 | `keyComp` | `0` | 0..50 | ms added to every transmitted dit and dah (QSK), taken from the space after it |
 | `firstExt` | `0` | 0..150 | ms added to the first dit or dah after a pause, for radios that clip it |
 | `farnsworth` | `0` | 0..60 | text sending: effective wpm for the spacing, 0 = off |
-| `trainWpm` | `20` | 5..60 | trainer character speed, wpm |
 | `trainEff` | `12` | 0..60 | trainer effective (Farnsworth) speed, 0 = off |
 | `trainTone` | `0` | 0..2000 | trainer tone in Hz, 0 = same as the sidetone |
 | `midi` | `on` | on, off | USB MIDI port (restart) |
