@@ -9,6 +9,7 @@
 #include <WiFiClient.h>
 #include <WiFiServer.h>
 #include <pico/unique_id.h>
+#include <class/net/ncm.h>
 #include <tusb.h>
 #include <lwip_wrap.h>
 extern "C" {
@@ -56,9 +57,54 @@ static void dropUnroutable() {
     p = next;
   }
 }
+// The host has started the NCM data interface (alternate setting 1). Until it
+// has, nothing is read from SmartCW: the core's driver waits for the host
+// forever once its one transmit buffer is full, and the watchdog restarts
+// SmartCW. A host whose NCM driver fails to start then sees SmartCW come and
+// go every 12 s, so frames are dropped instead.
+static volatile bool ncmDataOn = false;
+
 static err_t lossyLinkOutput(struct netif *n, struct pbuf *p) {
-  ncmLinkOutput(n, p);
+  if (ncmDataOn)
+    ncmLinkOutput(n, p);
   return ERR_OK;
+}
+
+// Windows 11 (KB5124008, September 2026) refuses an NCM device whose NTB
+// parameters give a datagram divisor below 4: Code 10, "hardware error".
+// arduino-pico's TinyUSB still says 1, so this request is answered here with
+// TinyUSB's own values and a divisor of 4, as TinyUSB itself does since
+// PR #3914. Its datagrams are 4-byte aligned already.
+extern "C" bool __real_netd_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t const *request);
+extern "C" bool __wrap_netd_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t const *request) {
+  if (stage == CONTROL_STAGE_SETUP) {
+    if (request->bmRequestType_bit.type == TUSB_REQ_TYPE_CLASS && request->bRequest == NCM_GET_NTB_PARAMETERS) {
+      static const ntb_parameters_t params = {
+          .wLength = sizeof(ntb_parameters_t),
+          .bmNtbFormatsSupported = 0x01, // NTB16
+          .dwNtbInMaxSize = CFG_TUD_NCM_IN_NTB_MAX_SIZE,
+          .wNdbInDivisor = 4,
+          .wNdbInPayloadRemainder = 0,
+          .wNdbInAlignment = 4,
+          .wReserved = 0,
+          .dwNtbOutMaxSize = CFG_TUD_NCM_OUT_NTB_MAX_SIZE,
+          .wNdbOutDivisor = 4,
+          .wNdbOutPayloadRemainder = 0,
+          .wNdbOutAlignment = 4,
+          .wNtbOutMaxDatagrams = CFG_TUD_NCM_OUT_MAX_DATAGRAMS_PER_NTB,
+      };
+      return tud_control_xfer(rhport, request, (void *)(uintptr_t)&params, sizeof(params));
+    }
+    if (request->bmRequestType_bit.type == TUSB_REQ_TYPE_STANDARD && request->bRequest == TUSB_REQ_SET_INTERFACE)
+      ncmDataOn = request->wValue == 1; // only the data interface has two settings
+  }
+  return __real_netd_control_xfer_cb(rhport, stage, request);
+}
+
+extern "C" void __real_netd_reset(uint8_t rhport);
+extern "C" void __wrap_netd_reset(uint8_t rhport) {
+  ncmDataOn = false; // a bus reset: the host starts the data interface again
+  __real_netd_reset(rhport);
 }
 
 static cw_dhcps_t dhcps;
@@ -291,7 +337,7 @@ void netTick() {
   // queued while USB was busy go out without waiting for traffic.
   static uint32_t lastTimers = 0, lastKick = 0, lastDrop = 0;
   uint32_t nowMs = millis();
-  if (nowMs - lastKick >= 5) {
+  if (ncmDataOn && nowMs - lastKick >= 5) {
     lastKick = nowMs;
     NCMEthernet::_set_recv_pending();
   }

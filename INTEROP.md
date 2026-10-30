@@ -18,7 +18,7 @@ All interfaces are registered right after power-up, before the host has finished
 
 ## 🌐 USB network
 
-SmartCW is a CDC-NCM network adapter, supported natively by Linux, macOS and Windows 10/11 (no driver, no Internet Connection Sharing).
+SmartCW is a CDC-NCM network adapter, supported natively by Linux, macOS and Windows 10/11 (no driver, no Internet Connection Sharing). Windows 11 with the September 2026 update (KB5124008) refuses the network adapter of firmware before 2.3.2 (Code 10), and SmartCW then restarts about every 12 s: update the firmware from a Mac or Linux computer.
 
 | | |
 | --- | --- |
@@ -148,7 +148,7 @@ A line starting with `!` is a command, ended by CR or LF. Every response line st
 | `!help` | the command list |
 | `!status` | settings, USB and network in words (second line: `!id <serial or none>, chip <chip ID>`); after an unexpected restart also `!last crash: ...` |
 | `!state` | `!state {...}`: the same JSON as `GET /api/state` |
-| `!version` | `!version 2.3.1` |
+| `!version` | `!version 2.3.2` |
 | `!id` | `!id SCW-00042`: the RF.Guru serial number, or `!id none` when the board has none yet |
 | `!id set <serial>` | store the serial number (1–24 characters, A–Z, 0–9 and `-`, lowercase is raised); replies `!id <serial>`. Refused with `!err id already set: !id clear first` while another one is stored. It is kept in its own flash sector: firmware updates, `config.txt` and factory settings never touch it, only `flash_nuke.uf2` erases it. From the next restart it is also the USB serial number |
 | `!id clear` | remove it; replies `!id none`. The USB serial number goes back to the chip ID after a restart |
@@ -173,7 +173,7 @@ A line starting with `!` is a command, ended by CR or LF. Every response line st
 | `!reboot` | restart; writes `config.txt` first when a change is pending |
 | `!bootloader` | `!rebooting into UF2 bootloader`, then the UF2 bootloader (`RPI-RP2`); writes `config.txt` first when a change is pending, so a setting changed just before an update is kept |
 
-The boot banner, sent about 1.5 s after power-up, starts with `!SmartCW 2.3.1 ready` and ends with `!type text to send CW, !help for commands`. A TCP client gets a one-line greeting.
+The boot banner, sent about 1.5 s after power-up, starts with `!SmartCW 2.3.2 ready` and ends with `!type text to send CW, !help for commands`. A TCP client gets a one-line greeting.
 
 ### Minimal client (Python)
 
