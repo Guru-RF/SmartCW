@@ -245,16 +245,14 @@ static void cw_dhcps_process(void *arg, struct udp_pcb *upcb, struct pbuf *p, co
     }
 
     case DHCPREQUEST: {
+        // SELECTING/INIT-REBOOT: option 50; RENEWING/REBINDING: ciaddr
         uint8_t *o = opt_find(opt, DHCP_OPT_REQUESTED_IP);
-        if (o == NULL) {
+        const uint8_t *req = o ? o + 2 : dhcp_msg.ciaddr;
+        if (memcmp(req, ip_2_ip4(&d->ip), 3) != 0) {
             // Should be NACK
             goto ignore_request;
         }
-        if (memcmp(o + 2, ip_2_ip4(&d->ip), 3) != 0) {
-            // Should be NACK
-            goto ignore_request;
-        }
-        uint8_t yi = o[5] - DHCPS_BASE_IP;
+        uint8_t yi = req[3] - DHCPS_BASE_IP;
         if (yi >= DHCPS_MAX_IP) {
             // Should be NACK
             goto ignore_request;

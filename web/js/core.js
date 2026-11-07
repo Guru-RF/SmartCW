@@ -250,9 +250,11 @@ const Beep = {
   },
   // Plays text in the browser; returns a promise that resolves when done.
   // eff: Farnsworth effective wpm (0 = off)
-  play(text, wpm, freq, eff) {
+  // force: the trainer's own sound choice, not the Live page's speaker
+  play(text, wpm, freq, eff, force) {
     this.init();
-    if (!this.ctx || !this.enabled) return Promise.resolve();
+    if (!this.ctx || (!this.enabled && !force)) return Promise.resolve();
+    if (this.ctx.state === "suspended") this.ctx.resume();
     wpm = wpm || App.cfg.wpm || 20;
     const dit = 1.2 / wpm;
     let charGap = 3 * dit, wordGap = 7 * dit;

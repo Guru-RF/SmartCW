@@ -111,6 +111,7 @@ size_t engineQueue(const char *text, uint8_t profile) {
 
 // ---------------- requests from the loop ----------------
 static volatile bool stopReq = false, resetReq = false, tuneReq = false;
+static volatile uint16_t stopAt = 0; // text queued after engineStop() stays
 static volatile uint8_t beepReq = 0;
 static volatile uint32_t tuneReqMs = 0;
 static volatile uint32_t practiceUntil = 0;
@@ -189,6 +190,7 @@ static void readPaddles(bool &d, bool &h, bool &dRise, bool &hRise, bool &dFall,
 // ---------------- marks ----------------
 static uint16_t markFlags = 0;
 static uint32_t lastMarkEnd = 0;
+static bool markDown = false; // the engine's own view: output may be reset under it
 
 // Keying compensation and first element extension for a transmitted mark:
 // the extra ms for this mark, and in comp the part that comes off the space.
@@ -206,12 +208,14 @@ static uint16_t txExtra(bool tx, uint32_t now, uint16_t dit, uint16_t &comp) {
 static void markOn(uint16_t flags, uint32_t now) {
   outKey(true, (flags & EVK_TX) != 0, now);
   markFlags = flags;
+  markDown = true;
   push(EV_KEY, 1, flags);
 }
 
 static void markOff(uint32_t now) {
-  if (!outKeyIsDown())
+  if (!markDown)
     return;
+  markDown = false;
   lastMarkEnd = now;
   outKey(false, false, now);
   push(EV_KEY, 0, markFlags);
@@ -403,7 +407,7 @@ static void autoTick(uint32_t now, bool d, bool h, bool tx) {
       ledsOff();
       kLastEnd = now;
       if (curEl == '.')
-        ditMem = false; // re-latched during the gap while still held
+        ditMem = false; // decided again at the end of the gap
       else
         dahMem = false;
       if (m == KM_IAMBIC_A) { // no squeeze memory: only what is held now
@@ -418,6 +422,15 @@ static void autoTick(uint32_t now, bool d, bool h, bool tx) {
     break;
   case K_GAP:
     if ((int32_t)(now - kUntil) >= 0) {
+      // The paddle of the element just sent only counts while it is still
+      // held: releasing it during the gap must not add one more element.
+      // The other paddle keeps its memory (a tap during the element or gap).
+      if (curEl == '.')
+        ditMem = d;
+      else
+        dahMem = h;
+      if (m == KM_IAMBIC_A && !d && !h)
+        ditMem = dahMem = false; // mode A: both released, nothing is pending
       char next = choose(d, h, false);
       if (next) {
         kStart(next, now, tx);
@@ -442,8 +455,8 @@ static uint32_t pUntil = 0;
 static bool pRun = false, pActive = false;
 static Timing pT;
 
-static void playerClear(uint32_t now) {
-  tqTail = tqHead;
+static void playerClear(uint32_t now, uint16_t tail) {
+  tqTail = tail;
   if (pp == P_MARK)
     markOff(now);
   if (pp != P_IDLE)
@@ -613,7 +626,7 @@ static bool tick(repeating_timer_t *) {
   }
   if (stopReq) {
     stopReq = false;
-    playerClear(now);
+    playerClear(now, stopAt);
     endTune(now);
   }
 
@@ -669,7 +682,7 @@ static bool tick(repeating_timer_t *) {
   } else {
     beepTick(now);
     if ((d || h) && (pp != P_IDLE || tqHead != tqTail)) {
-      playerClear(now);
+      playerClear(now, tqHead);
       push(EV_ABORT, 0);
     }
     if (config.keyer == KM_STRAIGHT)
@@ -704,7 +717,11 @@ void engineBegin() {
   add_repeating_timer_us(-1000, tick, nullptr, &timer);
 }
 
-void engineStop() { stopReq = true; }
+void engineStop() {
+  stopAt = tqHead;
+  __compiler_memory_barrier();
+  stopReq = true;
+}
 void engineResetKeyer() { resetReq = true; }
 void engineBeep(uint8_t count) { beepReq = count; }
 
@@ -716,7 +733,7 @@ void engineTune(uint32_t ms) {
 void enginePractice(uint32_t ms) { practiceUntil = millis() + ms; }
 
 void engineTrainSpeed(int wpm, int eff) {
-  if (wpm && (wpm < 5 || wpm > 60))
+  if (wpm && (wpm < 5 || wpm > 99))
     wpm = 0;
   trainEff = (eff > 0 && eff < wpm) ? eff : 0;
   trainWpm = wpm;

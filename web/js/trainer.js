@@ -97,7 +97,7 @@ Pages.train = (() => {
     const wpm = opts.wpm || App.cfg.wpm || 20;
     const eff = opts.eff !== undefined ? opts.eff : App.cfg.trainEff || 0;
     if (TPrefs.d.sound === "browser") {
-      return Beep.play(text, wpm, App.cfg.trainTone || App.cfg.tone, eff);
+      return Beep.play(text, wpm, App.cfg.trainTone || App.cfg.tone, eff, true);
     }
     return new Promise((res) => {
       const units = normalize(text).length * 14 + 10;
@@ -858,7 +858,7 @@ Pages.train = (() => {
           document.body.appendChild(a); a.click(); a.remove();
         } }, icon("download"), "Export"),
         h("button", { type: "button", onclick: () => fileIn.click() }, icon("upload"), "Import"), fileIn,
-        h("button", { type: "button", onclick: () => { if (confirm("Forget all trainer progress in this browser?")) { localStorage.removeItem("smartcw.stats"); Stats.load(); render2(); } } }, "Reset")),
+        h("button", { type: "button", onclick: () => { if (confirm("Forget all trainer progress in this browser?")) { try { localStorage.removeItem("smartcw.stats"); } catch (e) { /* blocked storage */ } Stats.load(); render2(); } } }, "Reset")),
     ];
   }
 

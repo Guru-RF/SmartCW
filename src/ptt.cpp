@@ -24,6 +24,7 @@ void pttToggleKeyer() {
     lastPaddleMode = config.keyer;
     config.keyer = KM_STRAIGHT;
   }
+  wkUserSet(cfgFind("keyer")); // the operator's choice: kept when the logger closes
   configMarkDirty();
   bool straight = config.keyer == KM_STRAIGHT;
   hubStream("!keyer ");

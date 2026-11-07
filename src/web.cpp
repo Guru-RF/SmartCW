@@ -252,9 +252,9 @@ static void pushState() {
   String ev = "{\"e\":\"state\",\"s\":";
   ev += st;
   ev += "}";
+  stateDirty = false; // before: a full stream sets it again for a resync
   webEvent(ev.c_str());
   stateSentAt = millis();
-  stateDirty = false;
 }
 
 static void startSse(Slot &s) {
@@ -506,7 +506,7 @@ static bool tryParse(Slot &s) {
       inm = inmBuf;
     }
   }
-  if (headerLen + clen > REQMAX) {
+  if (clen < 0 || clen > REQMAX || headerLen + clen > REQMAX) {
     fail(s, 413, "request too large");
     return true;
   }

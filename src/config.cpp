@@ -5,6 +5,7 @@
 Config config;
 
 static const char *CONFIG_PATH = "/config.txt";
+static const char *CONFIG_NEW = "/config.new"; // written first, then renamed
 
 #define OFF(field) ((uint16_t)offsetof(Config, field))
 #define I(k, f, mn, mx, d, sec, fl, h) {k, CT_INT, OFF(f), mn, mx, d, nullptr, nullptr, sec, fl, h}
@@ -500,18 +501,30 @@ static bool dirty = false;
 static unsigned long dirtyAt = 0;
 static bool restartNeeded = false;
 
+// The file is written as config.new and renamed over config.txt, so that a
+// cable pulled during the write leaves the old file (or the new one, picked
+// up at the next boot) instead of an empty config.txt and factory settings.
 static bool writeFile(const char *path, const String &data) {
   unsigned long t0 = millis();
   rp2040.wdt_reset();
-  File f = FatFS.open(path, "w");
+  FatFS.remove(CONFIG_NEW);
+  File f = FatFS.open(CONFIG_NEW, "w");
   if (!f)
     return false;
   size_t w = f.write((const uint8_t *)data.c_str(), data.length());
   rp2040.wdt_reset();
   f.close();
   rp2040.wdt_reset();
+  bool ok = w == data.length();
+  if (ok) {
+    FatFS.remove(path);
+    ok = FatFS.rename(CONFIG_NEW, path);
+  }
+  if (!ok)
+    FatFS.remove(CONFIG_NEW);
+  rp2040.wdt_reset();
   lastWriteMs = millis() - t0;
-  return w == data.length();
+  return ok;
 }
 
 unsigned long configLastWriteMs() { return lastWriteMs; }
@@ -537,6 +550,14 @@ bool configBegin() {
   fatfs::DWORD serial = 0;
   if (fatfs::f_getlabel("", label, &serial) != fatfs::FR_OK || strcmp(label, "SMARTCW"))
     fatfs::f_setlabel("SMARTCW");
+
+  // A save interrupted after the rename started: finish it.
+  if (FatFS.exists(CONFIG_NEW)) {
+    if (FatFS.exists(CONFIG_PATH))
+      FatFS.remove(CONFIG_NEW);
+    else
+      FatFS.rename(CONFIG_NEW, CONFIG_PATH);
+  }
 
   String content;
   if (FatFS.exists(CONFIG_PATH)) {
@@ -584,6 +605,8 @@ bool configSave() {
   bool ok = writeFile(CONFIG_PATH, configToYaml(c));
   if (ok)
     dirty = false;
+  else
+    dirtyAt = millis(); // try again in 2 s, not on every loop pass
   return ok;
 }
 

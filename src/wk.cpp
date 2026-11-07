@@ -64,8 +64,8 @@ bool wkOpen() { return st == WK_OPEN; }
 
 void wkPersistView(Config &c) {
   if (st == WK_OPEN)
-    copyFields(c, saved);
-  if (feed.baseWpm())
+    copyFields(c, saved); // the operator's speed, not the logger's
+  else if (feed.baseWpm())
     c.wpm = feed.baseWpm();
 }
 
@@ -457,8 +457,11 @@ static void command(uint8_t c) {
 }
 
 bool wkFeed(uint8_t b) {
-  if (!config.winkeyer)
+  if (!config.winkeyer) {
+    if (st != WK_OFF)
+      endSession(); // turned off on the web page while a logger was open
     return false;
+  }
   uint32_t now = millis();
   if (st == WK_OFF) {
     // 0x00 starts an admin command; loggers also send nulls (0x13) to sync.

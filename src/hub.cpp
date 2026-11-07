@@ -13,8 +13,9 @@
 static bool beaconOn = false;
 static bool beaconSending = false;
 static unsigned long beaconNext = 0;
-static bool pttNoteOn = false;
+static bool pttNoteOn = false; // a 150 ms pulse is running
 static unsigned long pttNoteOffAt = 0;
+static bool pttHeldNote = false; // audio-mode PTT note is on
 static uint8_t keyNote = 0;
 static bool keyNoteOn = false;
 static bool padDit = false, padDah = false;   // raw paddle contacts
@@ -52,6 +53,8 @@ bool hubPlayMemory(int n, uint8_t profile) {
     return false;
   bool usedNr = false;
   String t = configExpand(config.mem[n - 1], &usedNr);
+  if (engineQueueFree() < t.length())
+    return false; // the queue is full: the number is not used up
   engineQueue(t.c_str(), profile);
   if (usedNr && profile == PROF_TX) { // the next contact gets the next number
     config.nr = config.nr < 9999 ? config.nr + 1 : 1;
@@ -229,9 +232,16 @@ static void handle(const Event &e) {
     }
     webEvent("{\"e\":\"abort\"}");
     break;
-  case EV_PTT:
-    if (usbMidiActive() && config.output == OUT_AUDIO)
-      usbMidiNote((uint8_t)config.midiPttNote, e.a != 0);
+  case EV_PTT: // the note off follows the note on, whatever the output mode is now
+    if (e.a) {
+      if (usbMidiActive() && config.output == OUT_AUDIO) {
+        usbMidiNote((uint8_t)config.midiPttNote, true);
+        pttHeldNote = true;
+      }
+    } else if (pttHeldNote) {
+      pttHeldNote = false;
+      usbMidiNote((uint8_t)config.midiPttNote, false);
+    }
     snprintf(buf, sizeof(buf), "{\"e\":\"ptt\",\"d\":%d}", e.a);
     webEvent(buf);
     break;
@@ -260,8 +270,9 @@ void hubTick() {
 
   unsigned long now = millis();
   if (pttNoteOn && (long)(now - pttNoteOffAt) >= 0) {
-    usbMidiNote((uint8_t)config.midiPttNote, false);
     pttNoteOn = false;
+    if (!pttHeldNote) // a pulse must not release the audio-mode PTT
+      usbMidiNote((uint8_t)config.midiPttNote, false);
   }
 
   if (beaconOn && !beaconSending && !engineBusy() && (long)(now - beaconNext) >= 0) {

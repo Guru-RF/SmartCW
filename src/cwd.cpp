@@ -59,6 +59,9 @@ static void set(const char *key, const String &v) {
 
 static void escape(char code, const char *arg) {
   long v = atol(arg);
+  bool num = isdigit((unsigned char)arg[0]) || ((arg[0] == '-' || arg[0] == '+') && isdigit((unsigned char)arg[1]));
+  if (!num && strchr("237cd", code))
+    return; // cwdaemon ignores a request without a number
   switch (code) {
   case '0': // reset
     replyArmed = false;
