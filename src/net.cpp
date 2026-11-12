@@ -101,6 +101,80 @@ extern "C" bool __wrap_netd_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_
   return __real_netd_control_xfer_cb(rhport, stage, request);
 }
 
+// Windows 10 only loads its NCM class driver (UsbNcm.sys) by itself when the
+// device names it in a Microsoft OS 2.0 descriptor: compatible ID "WINNCM" on
+// the NCM control interface (Windows 11 binds it by class). The arduino-pico
+// core builds no BOS descriptor unless picotool is enabled, so the device
+// descriptor is patched to USB 2.1 (the host then asks for the BOS) and the
+// BOS points at the descriptor set below, same layout as TinyUSB's
+// net_lwip_webserver example. bcdDevice is raised with it, so that a Windows
+// which saw the old device (REV_0100) treats this one as new and re-reads it.
+#define MS_OS_20_DESC_LEN 0xB2
+static const uint8_t desc_bos[] = {
+    TUD_BOS_DESCRIPTOR(TUD_BOS_DESC_LEN + TUD_BOS_MICROSOFT_OS_DESC_LEN, 1),
+    TUD_BOS_MS_OS_20_DESCRIPTOR(MS_OS_20_DESC_LEN, 1), // vendor code 1
+};
+static uint8_t desc_ms_os_20[] = {
+    // Set header: length, type, windows version, total length
+    U16_TO_U8S_LE(0x000A), U16_TO_U8S_LE(MS_OS_20_SET_HEADER_DESCRIPTOR), U32_TO_U8S_LE(0x06030000),
+    U16_TO_U8S_LE(MS_OS_20_DESC_LEN),
+    // Configuration subset header: length, type, configuration index, reserved, total length
+    U16_TO_U8S_LE(0x0008), U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_CONFIGURATION), 0, 0,
+    U16_TO_U8S_LE(MS_OS_20_DESC_LEN - 0x0A),
+    // Function subset header: length, type, first interface (filled in), reserved, subset length
+    U16_TO_U8S_LE(0x0008), U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_FUNCTION), 0, 0,
+    U16_TO_U8S_LE(MS_OS_20_DESC_LEN - 0x0A - 0x08),
+    // Compatible ID descriptor: length, type, compatible ID, sub compatible ID
+    U16_TO_U8S_LE(0x0014), U16_TO_U8S_LE(MS_OS_20_FEATURE_COMPATBLE_ID), 'W', 'I', 'N', 'N', 'C', 'M', 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    // Registry property descriptor: DeviceInterfaceGUIDs (REG_MULTI_SZ)
+    U16_TO_U8S_LE(MS_OS_20_DESC_LEN - 0x0A - 0x08 - 0x08 - 0x14), U16_TO_U8S_LE(MS_OS_20_FEATURE_REG_PROPERTY),
+    U16_TO_U8S_LE(0x0007), U16_TO_U8S_LE(0x002A),
+    'D', 0, 'e', 0, 'v', 0, 'i', 0, 'c', 0, 'e', 0, 'I', 0, 'n', 0, 't', 0, 'e', 0,
+    'r', 0, 'f', 0, 'a', 0, 'c', 0, 'e', 0, 'G', 0, 'U', 0, 'I', 0, 'D', 0, 's', 0, 0, 0,
+    U16_TO_U8S_LE(0x0050), // {5C7A3E0B-9F31-4B6E-8D2A-6E1C0F2B7A41}, SmartCW's own
+    '{', 0, '5', 0, 'C', 0, '7', 0, 'A', 0, '3', 0, 'E', 0, '0', 0, 'B', 0, '-', 0,
+    '9', 0, 'F', 0, '3', 0, '1', 0, '-', 0, '4', 0, 'B', 0, '6', 0, 'E', 0, '-', 0,
+    '8', 0, 'D', 0, '2', 0, 'A', 0, '-', 0, '6', 0, 'E', 0, '1', 0, 'C', 0, '0', 0,
+    'F', 0, '2', 0, 'B', 0, '7', 0, 'A', 0, '4', 0, '1', 0, '}', 0, 0, 0, 0, 0,
+};
+static_assert(sizeof(desc_ms_os_20) == MS_OS_20_DESC_LEN, "MS OS 2.0 descriptor length");
+static const size_t MS_OS_20_ITF_OFFSET = 0x0A + 0x08 + 4; // bFirstInterface of the function subset
+
+// The NCM control interface number: the core numbers the interfaces at run time.
+static uint8_t ncmControlInterface() {
+  const uint8_t *d = tud_descriptor_configuration_cb(0);
+  if (!d)
+    return 0;
+  uint16_t total = (uint16_t)(d[2] | (d[3] << 8));
+  for (uint16_t i = 0; i + 1 < total && d[i]; i += d[i]) {
+    if (d[i + 1] == TUSB_DESC_INTERFACE && d[i + 5] == TUSB_CLASS_CDC && d[i + 6] == CDC_COMM_SUBCLASS_NETWORK_CONTROL_MODEL)
+      return d[i + 2];
+  }
+  return 0;
+}
+
+extern "C" const uint8_t *tud_descriptor_bos_cb(void) { return desc_bos; }
+
+extern "C" bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t const *request) {
+  if (stage != CONTROL_STAGE_SETUP)
+    return true;
+  if (request->bmRequestType_bit.type == TUSB_REQ_TYPE_VENDOR && request->bRequest == 1 && request->wIndex == 7) {
+    desc_ms_os_20[MS_OS_20_ITF_OFFSET] = ncmControlInterface();
+    return tud_control_xfer(rhport, request, desc_ms_os_20, MS_OS_20_DESC_LEN);
+  }
+  return false;
+}
+
+extern "C" const uint8_t *__real_tud_descriptor_device_cb(void);
+extern "C" const uint8_t *__wrap_tud_descriptor_device_cb(void) {
+  static tusb_desc_device_t d;
+  memcpy(&d, __real_tud_descriptor_device_cb(), sizeof(d));
+  d.bcdUSB = 0x0210;    // a BOS descriptor follows
+  d.bcdDevice = 0x0200; // raised once for the Windows 10 driver binding; leave it
+  return (const uint8_t *)&d;
+}
+
 extern "C" void __real_netd_reset(uint8_t rhport);
 extern "C" void __wrap_netd_reset(uint8_t rhport) {
   ncmDataOn = false; // a bus reset: the host starts the data interface again
