@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: smartcw.app
+    url: https://smartcw.app/
+    about: Setting up, the web interface, and updating the firmware over the cable.
+  - name: The README
+    url: https://github.com/Guru-RF/SmartCW/blob/main/README.md
+    about: Boot modes, key types, config.txt, the serial protocol, MIDI, loggers and the LEDs.
+  - name: RF.Guru support
+    url: https://shop.rf.guru/pages/contact
+    about: Orders, a missing part of the kit, or a SmartCW that arrived without firmware (RF.Guru sends a one-time link for that).

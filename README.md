@@ -255,6 +255,72 @@ Pre-built UF2 files are attached to every [GitHub release](https://github.com/Gu
 
 ---
 
+## 🐞 Reporting a problem
+
+Open a [bug report](https://github.com/Guru-RF/SmartCW/issues/new?template=bug.yml),
+one problem per issue, after a look at the
+[open issues](https://github.com/Guru-RF/SmartCW/issues). Its form asks for
+these; please give:
+
+1. **The firmware version and the RF.Guru serial number** (`SCW-xxxxx`), from
+   the web interface's System page or from `!version` and `!id` on the serial
+   port. Say how it got that version (as delivered, smartcw.app/update, a UF2
+   dragged onto the `RPI-RP2` drive, built from source) and from which
+   version.
+2. **The computer**: its operating system and version, the browser for a web
+   page problem, and what SmartCW was talking to: the web interface, the
+   serial port or TCP, a WinKeyer logger, cwdaemon, MIDI, keyboard mode,
+   vBand or Vail. For a program, its name, version and how it is set up for
+   SmartCW.
+3. **The key and the radio**: the `keyer` setting and the paddle or key, the
+   radio, the `output` setting and what is wired to CW, PTT and audio on the
+   breakout, and the boot mode (what was held while plugging in).
+4. **What happened**: what you did, what you expected and what you got. Give
+   the speed, the mode and the page or command you were using. For a keying
+   problem, what you keyed and what came out, on air, on the sidetone or as
+   decoded text. A short video of the paddles and the LEDs says a lot.
+5. **The LEDs**: what PWR, DIT, DAH, SER and SER2 did (see [LEDs](#-leds)),
+   and whether a re-plug brought it back.
+6. **`config.txt` or `!status`**: the file from the `SMARTCW` drive or the
+   System page, or the output of `!status` and `!state`, which also shows a
+   recorded crash. Blank out your callsign, the memories and anything else
+   you would rather keep to yourself; the settings are what matters.
+
+A SmartCW that arrived without firmware, or with a part of the kit missing,
+is not a bug: write to [RF.Guru support](https://shop.rf.guru/pages/contact),
+which sends a one-time link that puts the firmware on.
+
+## 💡 Requesting a feature
+
+Open a [feature request](https://github.com/Guru-RF/SmartCW/issues/new?template=feature.yml)
+whose title starts with **Feature:** and names it in a few words
+(`Feature: Farnsworth spacing in the trainer`), one feature per issue. Look
+at the open ones first: if the feature is there, add what you would use it
+for to that issue. Please give:
+
+1. **The firmware version** you run.
+2. **What you want to do**: the operating it is for (a contest, a remote
+   station, practice, an SDR set-up, a club net), not only the feature: "send
+   the exchange from N1MM+ with the serial number cut" says more than "add cut
+   numbers".
+3. **How you do it today**: with SmartCW as it is, another keyer, a program
+   on the computer or a phone app, and what is missing or awkward about it.
+4. **Where it would live**: a web page (Live, Settings, Trainer, System), a
+   `config.txt` setting, a serial or TCP command, the WinKeyer or cwdaemon
+   side, MIDI, the PTT button or the paddles; what you would press and what
+   you would see. A sketch, or a screenshot of another program that does it,
+   helps.
+5. **What it depends on**: a program, a protocol, a service or a device, with
+   a link to its specification, its API or its rules, and whether it needs an
+   account or a key.
+6. **How you can help**: testing it on your SmartCW, a pull request, the
+   documentation.
+
+The form asks for each of these, and labels the issue **enhancement**. One
+feature per issue lets each be answered, built and closed on its own.
+
+---
+
 ## 🧑‍💻 Building from source
 
 Requires [PlatformIO](https://platformio.org/install) (`pip install platformio`).
