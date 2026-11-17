@@ -58,7 +58,10 @@ static void setLevel(int pin, bool on, int level) {
 
 static void applySound() {
   setLevel(PIN_BUZZER, sideOn && (config.buzzer || forceBuzzer), config.volume);
-  bool line = (curOutput == OUT_AUDIO) ? lineTx : sideOn;
+  // Key and practice modes: line out is a second sidetone. Audio mode: it is
+  // the radio's input and carries the TX tone after the PTT lead, plus the
+  // sidetone when the operator asked for it there too (lineSidetone).
+  bool line = (curOutput == OUT_AUDIO) ? (lineTx || (config.lineSidetone && sideOn)) : sideOn;
   setLevel(PIN_LINEOUT, line, config.lineLevel);
 }
 

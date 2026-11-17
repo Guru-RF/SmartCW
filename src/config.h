@@ -35,6 +35,7 @@ struct Config {
   bool buzzer;
   int volume;     // buzzer level 1..10
   int lineLevel;  // line out level 1..10
+  bool lineSidetone; // audio mode: the sidetone on line out as well as the TX tone
   // transmit output
   int output;     // OutputMode
   int pttLead;    // ms between PTT and the first tone (audio mode)

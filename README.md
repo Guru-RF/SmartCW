@@ -97,7 +97,7 @@ The paddle jack takes paddles (dit on tip, dah on ring, `paddleSwap` for left-ha
 | `output` | The output jack | Line out |
 | --- | --- | --- |
 | `key` | keys the radio like a straight key | sidetone |
-| `audio` | is PTT: on `pttLead` ms before the first tone, off `pttTail` ms after the last | the CW tone that goes on air |
+| `audio` | is PTT: on `pttLead` ms before the first tone, off `pttTail` ms after the last | the CW tone that goes on air (plus the sidetone with `lineSidetone: on`) |
 | `off` | idle (practice) | sidetone |
 
 `keyComp` adds a fixed number of milliseconds to every transmitted dit and dah and takes it off the space after it, for QSK radios that shorten elements. `firstExt` lengthens the first dit or dah after a pause, for radios that clip it while they switch to transmit. Both work like the WinKeyer settings of the same name and only touch what goes on air.
@@ -122,6 +122,7 @@ Every setting can be changed in the web interface, with `!<setting> <value>` ove
 | `buzzer` | `on` | on, off | piezo buzzer on/off |
 | `volume` | `10` | 1..10 | buzzer level 1..10 |
 | `lineLevel` | `10` | 1..10 | line out level 1..10 |
+| `lineSidetone` | `off` | on, off | audio mode: the sidetone on line out as well as the TX tone (key and off modes always have it there) |
 | `output` | `key` | key, audio, off | key = output keys the radio, audio = output is PTT and the tone goes out on line out, off = practice |
 | `pttLead` | `50` | 0..500 | audio mode: ms between PTT and the first tone |
 | `pttTail` | `400` | 0..3000 | audio mode: ms PTT stays on after the last tone |
