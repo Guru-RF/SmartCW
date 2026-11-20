@@ -233,6 +233,14 @@ const Beep = {
   // device setting: each browser decides for itself.
   sidetone: (() => { try { return localStorage.getItem("smartcw.sidetone") === "1"; } catch (e) { return false; } })(),
   playUntil: 0, // while play() has tones scheduled, set() keeps its hands off the gain
+  // Browser volume 1..10, a browser preference like the sidetone switch. The
+  // old fixed level was 0.18, which is 4 on this scale; 7 is the default now.
+  volume: (() => { try { const v = Number(localStorage.getItem("smartcw.volume")); return v >= 1 && v <= 10 ? v : 7; } catch (e) { return 7; } })(),
+  level() { const v = this.volume / 10; return v * v; }, // squared: even steps to the ear
+  setVolume(v) {
+    this.volume = Math.min(10, Math.max(1, Number(v) || 7));
+    try { localStorage.setItem("smartcw.volume", String(this.volume)); } catch (e) { /* private mode */ }
+  },
   setSidetone(on) {
     this.sidetone = !!on;
     try { localStorage.setItem("smartcw.sidetone", on ? "1" : "0"); } catch (e) { /* private mode */ }
@@ -271,7 +279,7 @@ const Beep = {
     const t = this.ctx.currentTime;
     this.osc.frequency.setValueAtTime(freq || App.cfg.tone || 600, t);
     this.gain.gain.cancelScheduledValues(t);
-    this.gain.gain.setTargetAtTime(on ? 0.18 : 0, t, 0.004);
+    this.gain.gain.setTargetAtTime(on ? this.level() : 0, t, 0.004);
   },
   // Plays text in the browser; returns a promise that resolves when done.
   // eff: Farnsworth effective wpm (0 = off)
@@ -296,7 +304,7 @@ const Beep = {
       const p = MORSE[c];
       if (!p) continue;
       for (const e of p) {
-        g.setTargetAtTime(0.18, t, 0.004);
+        g.setTargetAtTime(this.level(), t, 0.004);
         t += (e === "." ? 1 : 3) * dit;
         g.setTargetAtTime(0, t, 0.004);
         t += dit;

@@ -13,11 +13,20 @@ function pairLayout(headL, headR, left, right) {
   return grid;
 }
 
-// Not a device setting: kept in this browser (Beep.sidetone).
+// Not device settings: kept in this browser (Beep.sidetone, Beep.volume).
 function browserSidetone() {
   const inp = h("input", { type: "checkbox", onchange: (e) => Beep.setSidetone(e.target.checked) });
   inp.checked = Beep.sidetone;
   return h("label.sw", inp, h("i"));
+}
+function browserVolume() {
+  const out = h("output", String(Beep.volume));
+  const inp = h("input", {
+    type: "range", min: 1, max: 10, step: 1, value: Beep.volume, "aria-label": "browser volume",
+    oninput: (e) => { Beep.setVolume(e.target.value); out.textContent = String(Beep.volume); },
+    onchange: () => Beep.play("e", null, null, 0, true), // a dit at the new level
+  });
+  return h("div.rng", inp, out);
 }
 
 Pages.settings = (() => {
@@ -58,7 +67,8 @@ Pages.settings = (() => {
             row("Buzzer level", "1 to 10", rangeInput("volume")),
             row("Line out level", "1 to 10, for headphones or the radio's input", rangeInput("lineLevel")),
             row("Sidetone on line out in audio mode", "key line and practice always have it there; in audio mode the radio's input hears it too", switchInput("lineSidetone")),
-            row("Sidetone in this browser", "what you key is heard on this computer too, a moment after SmartCW; the speaker button on the Live page mutes it", browserSidetone())),
+            row("Sidetone in this browser", "what you key is heard on this computer too, a moment after SmartCW; the speaker button on the Live page mutes it", browserSidetone()),
+            row("Browser volume", "1 to 10, for the sidetone, the tree and the trainer in this browser", browserVolume())),
           card("antenna", "Transmit output", "What the output jack does with transmitted CW",
             row("Output", "", segmented("output", ["key", "audio", "off"], ["Key line", "Audio + PTT", "Practice"])),
             h("p.hint", "Key line: the jack keys your radio like a straight key. Audio + PTT: the jack is PTT and the CW tone goes out on line out, for FM, SSB or a data input. Practice: nothing is transmitted."),
