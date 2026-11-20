@@ -17,7 +17,7 @@ Buy here: [SmartCW – RF.Guru shop](https://shop.rf.guru)
 - **Keyer**: iambic A, iambic B, ultimatic, bug or straight key on the paddle jack, with weighting, dah ratio, paddle swap and autospace. A long press on PTT switches to straight key and back.
 - **Speed on the box**: hold PTT and tap the dit paddle (slower) or the dah paddle (faster); SmartCW says the new speed on the sidetone when you let go. No computer needed.
 - **Transmit output**, three ways: the jack **keys the radio** like a straight key, or it is **PTT with the CW tone on line out** (audio mode, for FM, SSB or a data input, with PTT lead and tail), or **practice** (nothing transmitted). Keying compensation and first-element extension for QSK radios.
-- **Sidetone** on the piezo and the line-out jack, pitch and level adjustable.
+- **Sidetone** on the piezo and the line-out jack, pitch and level adjustable, and in the browser if you like (Settings, *Sidetone in this browser*).
 - **Decodes what you key** (adaptive for straight key) and sends it to the computer over USB serial, TCP and the web page.
 - **Sends text as CW**: from the web page, serial, TCP or the ten memories, with Farnsworth spacing and prosigns like `<SK>`, `<KN>`, `<AR>`, `<BT>`.
 - **Contest loggers**: SmartCW answers as a **WinKeyer** on its serial port (N1MM+, DXLog, Win-Test, fldigi, CQRLOG and every other WinKeyer logger) and as **cwdaemon** over the USB network (CQRLOG, TLF, xlog). Memories send a **contest serial number** with `{nr}`, with cut numbers (0 as T, 9 as N).
@@ -45,7 +45,7 @@ Plug SmartCW in and open **http://smartcw.local/** or **http://192.168.7.1/**. S
 | --- | --- |
 | **Live** | The visual Morse tree (follows every dit and dah from your paddles, tap a letter to hear it, swipe for numbers and signs), the decoded text with its Morse, an on-screen key (tap = dot, hold = dash), key type and output mode, speed and tone, text sending, memories, beacon, tune, PTT and a monitor of everything sent and received |
 | **Trainer** | Listen and repeat (Koch method, iambic keyer), copy characters, your own callsign, callsigns, words and abbreviations, Q-codes and prosigns, QSO practice (answer a CQ, call CQ, contest, park hunter), head copy of a complete QSO, your own text, a fist analyzer and progress per character |
-| **Settings** | Every setting, applied at once and saved to `config.txt` a moment later, with a **Reset to defaults** button that keeps your callsign, name and memories |
+| **Settings** | Every setting, applied at once and saved to `config.txt` a moment later, with a **Reset to defaults** button that keeps your callsign, name and memories. *Sidetone in this browser* sounds what you key on the computer too, a moment after SmartCW (a browser preference, not in `config.txt`) |
 | **System** | Status, a command console, backup and restore of `config.txt`, firmware update and how to connect SDR software, loggers and internet CW |
 
 The trainer pages hold **practice mode** while they are open: SmartCW never transmits during training, and transmits normally again within ten seconds after you leave. The trainer uses the keyer's speed (`wpm`): changing it on a trainer page changes it everywhere, and the other way round. Its effective (Farnsworth) speed and pitch are its own. Progress is kept in the browser and can be exported.

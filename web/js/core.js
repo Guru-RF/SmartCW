@@ -145,7 +145,10 @@ const Live = {
       try { m = JSON.parse(ev.data); } catch (e) { return; }
       if (m.e === "state") applyState(m.s);
       else {
-        if (m.e === "k") App.txDown = !!(m.d && (m.f & 1));
+        if (m.e === "k") {
+          App.txDown = !!(m.d && (m.f & 1));
+          Beep.key(!!m.d);
+        }
         Bus.emit(m.e, m);
       }
     };
@@ -225,6 +228,28 @@ function morseView(text, cls) {
 // ---------------- browser audio ----------------
 const Beep = {
   ctx: null, osc: null, gain: null, enabled: true,
+  // Sidetone in this browser: SmartCW's own keying (paddles, text, memories),
+  // heard on this computer from the "k" events. A browser preference, not a
+  // device setting: each browser decides for itself.
+  sidetone: (() => { try { return localStorage.getItem("smartcw.sidetone") === "1"; } catch (e) { return false; } })(),
+  playUntil: 0, // while play() has tones scheduled, set() keeps its hands off the gain
+  setSidetone(on) {
+    this.sidetone = !!on;
+    try { localStorage.setItem("smartcw.sidetone", on ? "1" : "0"); } catch (e) { /* private mode */ }
+    if (!on) this.set(false);
+    else this.init(); // from a click: the browser lets the audio start now
+  },
+  hinted: false,
+  key(down) {
+    if (!this.sidetone || !this.enabled) return;
+    if (this.ctx && this.ctx.currentTime < this.playUntil) return;
+    this.set(down);
+    // A fresh page may not sound before it was clicked once (autoplay rules).
+    if (down && !this.hinted && this.ctx && this.ctx.state === "suspended") {
+      this.hinted = true;
+      toast("Click the page once to let the browser play the sidetone");
+    }
+  },
   init() {
     if (this.ctx) return;
     const C = window.AudioContext || window.webkitAudioContext;
@@ -278,6 +303,7 @@ const Beep = {
       }
       t += charGap - dit;
     }
+    this.playUntil = t;
     return new Promise((res) => setTimeout(res, (t - this.ctx.currentTime) * 1000));
   },
 };
