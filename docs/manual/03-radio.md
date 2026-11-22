@@ -1,16 +1,15 @@
 # 3. Connecting a radio
 
-## The CW jack and the breakout
+## The CW jack and the Radio Interface
 
-The CW jack carries two things: the **key / PTT line** and **line out**, the audio with the sidetone or the transmit tone. The breakout in the box plugs into it with its cable and brings them out as three connections for the radio:
+The CW jack carries two things: the **key / PTT line** and **line out**, the audio with the sidetone or the transmit tone. The small black box in the kit, the RF.Guru **SmartCW Radio Interface**, splits them into two jacks for the radio. Its cable goes from its **SmartCW** jack to the CW jack on SmartCW.
 
-| On the breakout | Carries | Goes to |
+| Jack on the Radio Interface | Carries | Goes to |
 | --- | --- | --- |
-| **CW** | the key line | the radio's straight-key input |
-| **PTT** | the same line when the output is set to *Audio + PTT* | the radio's PTT |
-| **Audio** | line out | the radio's microphone, data or line input; or headphones, for the sidetone |
+| **PTT/CW** | the key / PTT line: the radio's key in *Key line* mode, its PTT in *Audio + PTT* mode | the radio's straight-key input, or its PTT |
+| **AUDIO** | line out | the radio's microphone, data or line input; or headphones, for the sidetone |
 
-Use CW or PTT, not both: which one the line is depends on the output mode below.
+One jack serves as key or as PTT: which one depends on the output mode below. With a plain CW radio only PTT/CW is needed.
 
 ## Three output modes
 

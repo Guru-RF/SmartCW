@@ -6,7 +6,7 @@ SmartCW is a USB-C iambic keyer, CW trainer and CW interface for radios and SDR 
 | --- | --- |
 | [1. Getting started](01-getting-started.md) | What is in the box, the connectors and LEDs, the first ten minutes |
 | [2. Keying](02-keying.md) | Paddles, straight key and bug, speed, memories, beacon, tune, the PTT button, your fist |
-| [3. Connecting a radio](03-radio.md) | The CW jack, the breakout, key line or audio with PTT, sidetone, QSK timing |
+| [3. Connecting a radio](03-radio.md) | The CW jack, the Radio Interface, key line or audio with PTT, sidetone, QSK timing |
 | [4. The web interface](04-web-interface.md) | Live, Settings, System, sidetone in the browser |
 | [5. The trainer](05-trainer.md) | Every exercise, the Koch method, the fist analyzer |
 | [6. Loggers and software](06-software.md) | WinKeyer loggers, cwdaemon, MIDI, keyboard mode, vBand and Vail, serial and TCP |

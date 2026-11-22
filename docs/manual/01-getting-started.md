@@ -4,7 +4,7 @@
 
 - The SmartCW keyer.
 - A USB-C to USB-A cable, 1 m.
-- The breakout for CW, audio and PTT, with its cable: the part that connects SmartCW to your radio (see [chapter 3](03-radio.md)).
+- The **Radio Interface**, a small box with a PTT/CW jack and an AUDIO jack, and its cable: the part that connects SmartCW to your radio (see [chapter 3](03-radio.md)).
 
 The firmware is already on the unit, with an RF.Guru serial number (`SCW-xxxxx`). Updates come from [smartcw.app](https://smartcw.app), over the same USB cable.
 
@@ -17,7 +17,7 @@ The firmware is already on the unit, with an RF.Guru serial number (`SCW-xxxxx`)
 | Front | The **PADDLE** jack and the **CW** jack; the CW jack also carries line out, for the sidetone or the transmit tone |
 | Inside | A piezo for the sidetone |
 
-The PADDLE jack takes paddles (dit on the tip, dah on the ring) or a straight key (tip, ring or both: a mono plug works). The CW jack goes to the radio, through the breakout.
+The PADDLE jack takes paddles (dit on the tip, dah on the ring) or a straight key (tip, ring or both: a mono plug works). The CW jack goes to the radio, through the Radio Interface.
 
 | LED | Meaning |
 | --- | --- |

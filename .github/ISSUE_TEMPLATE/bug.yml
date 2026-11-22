@@ -88,8 +88,8 @@ body:
     id: radio
     attributes:
       label: The radio and how it is wired
-      description: "The radio, the `output` setting (key, audio, off), and what is connected to CW, PTT and audio on the breakout."
-      placeholder: IC-7300, output key, breakout CW to the KEY jack
+      description: "The radio, the `output` setting (key, audio, off), and what is connected to the PTT/CW and AUDIO jacks of the Radio Interface."
+      placeholder: IC-7300, output key, PTT/CW to the KEY jack
   - type: dropdown
     id: boot
     attributes:

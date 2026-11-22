@@ -40,7 +40,7 @@ System → *Factory reset*, or `!defaults`, puts every setting back and keeps yo
 
 **smartcw.local does not open.** Use http://192.168.7.1/. If that does not open either: check that `network` is on (it is by default), and on Windows 10 that the firmware is 2.3.4 or newer; an older unit is updated from a Mac, a Linux machine or a Raspberry Pi with Chrome or Edge, after which Windows 10 works too.
 
-**The radio keys all the time, or never.** Check the output mode: *Key line* for a key input, *Audio + PTT* for a microphone or data input, and that the radio is set for a straight key, not for a paddle. Then check the breakout: CW for key line, PTT for audio mode.
+**The radio keys all the time, or never.** Check the output mode: *Key line* for a key input, *Audio + PTT* for a microphone or data input, and that the radio is set for a straight key, not for a paddle. Then check the Radio Interface: the PTT/CW jack goes to the radio's key input in *Key line* mode and to its PTT in *Audio + PTT* mode; AUDIO carries the tone.
 
 **No sound.** `buzzer` on and `volume` up for the piezo; `lineLevel` for line out. In audio mode line out carries the transmit tone, and the sidetone only with `lineSidetone` on. The browser's sidetone needs one click on the page first.
 

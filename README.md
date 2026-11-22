@@ -280,8 +280,8 @@ these; please give:
    vBand or Vail. For a program, its name, version and how it is set up for
    SmartCW.
 3. **The key and the radio**: the `keyer` setting and the paddle or key, the
-   radio, the `output` setting and what is wired to CW, PTT and audio on the
-   breakout, and the boot mode (what was held while plugging in).
+   radio, the `output` setting and what is wired to the PTT/CW and AUDIO jacks
+   of the Radio Interface, and the boot mode (what was held while plugging in).
 4. **What happened**: what you did, what you expected and what you got. Give
    the speed, the mode and the page or command you were using. For a keying
    problem, what you keyed and what came out, on air, on the sidetone or as
