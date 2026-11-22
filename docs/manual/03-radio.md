@@ -4,6 +4,8 @@
 
 The CW jack carries two things: the **key / PTT line** and **line out**, the audio with the sidetone or the transmit tone. The small black box in the kit, the RF.Guru **SmartCW Radio Interface**, splits them into two jacks for the radio. Its cable goes from its **SmartCW** jack to the CW jack on SmartCW.
 
+![The RF.Guru SmartCW Radio Interface, with its AUDIO and PTT/CW jacks in front](img/breakout.webp)
+
 | Jack on the Radio Interface | Carries | Goes to |
 | --- | --- | --- |
 | **PTT/CW** | the key / PTT line: the radio's key in *Key line* mode, its PTT in *Audio + PTT* mode | the radio's straight-key input, or its PTT |
@@ -21,7 +23,7 @@ Settings → Transmit output, or `!output key|audio|off`.
 | **Audio + PTT** (`audio`) | is PTT: on `pttLead` ms before the first tone, off `pttTail` ms after the last | the CW tone that goes on the air, plus the sidetone when `lineSidetone` is on |
 | **Practice** (`off`) | stays idle, nothing is transmitted | the sidetone |
 
-**Key line** is the normal way for a CW radio: set the radio for a straight key (not for a paddle, or its own keyer would try to key the keyer), connect CW to its key input, done. The radio makes its own sidetone, so you may want SmartCW's buzzer off.
+**Key line** is the normal way for a CW radio: set the radio for a straight key (not for a paddle, or its own keyer would try to key the keyer), connect PTT/CW to its key input, done. The radio makes its own sidetone, so you may want SmartCW's buzzer off.
 
 **Audio + PTT** is for an FM or SSB radio, a data interface or any transmitter that has no key input: SmartCW raises PTT, waits `pttLead` (default 50 ms), sends the CW as an audio tone on line out at `tone` Hz, and drops PTT `pttTail` (default 400 ms) after the last element so a string of letters does not pump the relay. Set the line out level (`lineLevel`, 1 to 10) for the radio's input, and the pitch (`tone`) to where the radio's filter wants it. Turn `lineSidetone` on if you also want to hear what you key on line out; it is off by default so that nothing but the TX tone goes to the radio.
 
