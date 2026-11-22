@@ -3,7 +3,7 @@
 ## In the box
 
 - The SmartCW keyer.
-- A USB-C to USB-A cable.
+- A USB-C to USB-A cable, 1 m.
 - The breakout for CW, audio and PTT, with its cable: the part that connects SmartCW to your radio (see [chapter 3](03-radio.md)).
 
 The firmware is already on the unit, with an RF.Guru serial number (`SCW-xxxxx`). Updates come from [smartcw.app](https://smartcw.app), over the same USB cable.
@@ -12,21 +12,20 @@ The firmware is already on the unit, with an RF.Guru serial number (`SCW-xxxxx`)
 
 | Where | What |
 | --- | --- |
-| Top | USB-C: power, serial port, MIDI, network and keyboard, all over one cable |
-| Front | The **PADDLE** jack, the **CW** jack, the **PTT** button, and the PWR, DAH and DIT LEDs |
-| Inside | A piezo for the sidetone; line out for the sidetone or the transmit tone |
+| Back | USB-C: power, serial port, MIDI, network and keyboard, all over one cable |
+| Top | The PWR, DAH and DIT LEDs and the **PTT** button |
+| Front | The **PADDLE** jack and the **CW** jack; the CW jack also carries line out, for the sidetone or the transmit tone |
+| Inside | A piezo for the sidetone |
 
 The PADDLE jack takes paddles (dit on the tip, dah on the ring) or a straight key (tip, ring or both: a mono plug works). The CW jack goes to the radio, through the breakout.
 
 | LED | Meaning |
 | --- | --- |
-| PWR | on while SmartCW runs; off while it is sending text |
+| PWR | on while SmartCW runs; off while it sends text, a memory or the beacon; blinks on a press of the PTT button |
 | DIT | on while a dit is keyed, or the straight key is closed |
 | DAH | on while a dah is keyed |
-| SER | on while text, a memory or the beacon is being sent |
-| SER2 | audio-mode PTT; flashes with PWR on a PTT press |
 
-All LEDs on at once, steadily, means SmartCW sits in its update mode (the bootloader) and runs no firmware: see [chapter 8](08-updates-and-troubleshooting.md).
+All three LEDs on at once, steadily, means SmartCW sits in its update mode (the bootloader) and runs no firmware: see [chapter 8](08-updates-and-troubleshooting.md).
 
 ## First ten minutes
 

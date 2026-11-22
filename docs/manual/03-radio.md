@@ -2,7 +2,7 @@
 
 ## The CW jack and the breakout
 
-The CW jack carries two things: the **key / PTT line** and **line out**, the audio with the sidetone or the transmit tone. The breakout in the box plugs into it with its cable and brings them out as three connections, labelled for the radio side:
+The CW jack carries two things: the **key / PTT line** and **line out**, the audio with the sidetone or the transmit tone. The breakout in the box plugs into it with its cable and brings them out as three connections for the radio:
 
 | On the breakout | Carries | Goes to |
 | --- | --- | --- |

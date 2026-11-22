@@ -1,6 +1,6 @@
 # SmartCW manual
 
-SmartCW is a USB-C iambic keyer, CW trainer and CW interface for radios and SDR software, made by RF.Guru. This manual is written for the firmware in this repository; the version it describes is the one in `src/pins.h`.
+SmartCW is a USB-C iambic keyer, CW trainer and CW interface for radios and SDR software, made by RF.Guru. This manual describes firmware 2.4.0: the System page shows which version your SmartCW runs, and [smartcw.app/update](https://smartcw.app/update) brings it up to date.
 
 | Chapter | For |
 | --- | --- |

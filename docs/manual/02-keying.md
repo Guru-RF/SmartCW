@@ -60,7 +60,7 @@ The defaults are a CQ, your call, `TU 5NN`, a sign-off, `QRL?`, `{call} DE {call
 
 | Press | Normal mode | Keyboard mode |
 | --- | --- | --- |
-| short, under 1.5 s | a PTT pulse over MIDI (note `midiPttNote`), PWR and SER2 flash | types Enter |
+| short, under 1.5 s | a PTT pulse over MIDI (note `midiPttNote`), PWR blinks | types Enter |
 | long, 1.5 s | toggles straight key and paddle keyer; 1 beep keyer, 2 beeps straight | same |
 | held, tap a paddle | dit = 1 wpm slower, dah = 1 wpm faster; the new speed is played, never transmitted | same |
 
