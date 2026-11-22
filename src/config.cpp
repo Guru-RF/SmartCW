@@ -22,6 +22,10 @@ static const CfgItem items[] = {
     I("ratio", ratio, 25, 45, 30, "keyer", 0, "dah length in tenths of a dit, 30 = 3.0"),
     B("paddleSwap", paddleSwap, 0, "keyer", 0, "swap the dit and dah paddles"),
     B("autoSpace", autoSpace, 0, "keyer", 0, "iambic: wait for a full letter space after a pause"),
+    I("fistDit", fistDit, 0, 1000, 0, "fist", CF_KEEP, "your fist, saved with !fist save: dit length in ms, 0 = none saved"),
+    I("fistDah", fistDah, 0, 3000, 0, "fist", CF_KEEP, "your fist: dah length in ms"),
+    I("fistGap", fistGap, 0, 2000, 0, "fist", CF_KEEP, "your fist: gap inside a letter in ms"),
+    I("fistCharGap", fistCharGap, 0, 4000, 0, "fist", CF_KEEP, "your fist: gap between letters in ms"),
 
     I("tone", tone, 300, 2000, 600, "sound", 0, "sidetone frequency in Hz"),
     B("buzzer", buzzer, 1, "sound", 0, "piezo buzzer on/off"),

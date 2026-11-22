@@ -33,6 +33,8 @@ The paddles always win: pressing a paddle aborts any text, beacon or tune in pro
 
 MIDI, keyboard mode, WinKeyer, cwdaemon, the serial/TCP protocol and the web API are described in [INTEROP.md](INTEROP.md).
 
+The **user manual**, chapter by chapter, is in [docs/manual](docs/manual/README.md).
+
 ---
 
 ## 🌐 Web interface
@@ -44,7 +46,7 @@ Plug SmartCW in and open **http://smartcw.local/** or **http://192.168.7.1/**. S
 | Page | What is on it |
 | --- | --- |
 | **Live** | The visual Morse tree (follows every dit and dah from your paddles, tap a letter to hear it, swipe for numbers and signs), the decoded text with its Morse, an on-screen key (tap = dot, hold = dash), key type and output mode, speed and tone, text sending, memories, beacon, tune, PTT and a monitor of everything sent and received |
-| **Trainer** | Listen and repeat (Koch method, iambic keyer), copy characters, your own callsign, callsigns, words and abbreviations, Q-codes and prosigns, QSO practice (answer a CQ, call CQ, contest, park hunter), head copy of a complete QSO, your own text, a fist analyzer and progress per character |
+| **Trainer** | Listen and repeat (Koch method, iambic keyer), copy characters, your own callsign, callsigns, words and abbreviations, Q-codes and prosigns, QSO practice (answer a CQ, call CQ, contest, park hunter), head copy of a complete QSO, your own text, a fist analyzer that shows the fist SmartCW has learned from you and saves it, and progress per character |
 | **Settings** | Every setting, applied at once and saved to `config.txt` a moment later, with a **Reset to defaults** button that keeps your callsign, name and memories. *Sidetone in this browser* sounds what you key on the computer too, a moment after SmartCW, with its own *Browser volume* (browser preferences, not in `config.txt`) |
 | **System** | Status, a command console, backup and restore of `config.txt`, firmware update and how to connect SDR software, loggers and internet CW |
 
@@ -100,6 +102,8 @@ The paddle jack takes paddles (dit on tip, dah on ring, `paddleSwap` for left-ha
 | `audio` | is PTT: on `pttLead` ms before the first tone, off `pttTail` ms after the last | the CW tone that goes on air (plus the sidetone with `lineSidetone: on`) |
 | `off` | idle (practice) | sidetone |
 
+**Your fist.** Hand keying is decoded against your own timing, not a keyer's 1:3:1:3. SmartCW learns four lengths while you key, a straight key or a bug: your dit, your dah, the gap you leave inside a letter and the gap between letters. A dah of 2.2 dits or of 4, letters run together at two dits or spread at four: it follows within a few letters, and a change of operator too. With paddles the marks are the keyer's, but the letter and word spacing is still yours and is learned the same way. The trainer's *Fist* page shows what SmartCW has learned and colours every letter it reads by how sure it was, so you see which ones sat close to the line between dit and dah or between letters; *Save as my fist* keeps it in `config.txt` (`fistDit`, `fistDah`, `fistGap`, `fistCharGap`), so the decoder starts from your fist at every power-up, and `!fist` shows it on the serial port.
+
 `keyComp` adds a fixed number of milliseconds to every transmitted dit and dah and takes it off the space after it, for QSK radios that shorten elements. `firstExt` lengthens the first dit or dah after a pause, for radios that clip it while they switch to transmit. Both work like the WinKeyer settings of the same name and only touch what goes on air.
 
 All timing runs in a 1 kHz interrupt, independent of USB and network traffic: at 20 wpm dits are 60 ms, dahs 180 ms, gaps 60 ms, measured over MIDI.
@@ -118,6 +122,7 @@ Every setting can be changed in the web interface, with `!<setting> <value>` ove
 | `ratio` | `30` | 25..45 | dah length in tenths of a dit, 30 = 3.0 |
 | `paddleSwap` | `off` | on, off | swap the dit and dah paddles |
 | `autoSpace` | `off` | on, off | iambic: wait for a full letter space after a pause |
+| `fistDit`, `fistDah`, `fistGap`, `fistCharGap` | `0` | ms | your fist as saved by `!fist save` or the trainer's Fist page: dit, dah, gap inside a letter, gap between letters; 0 = none, the decoder starts from `wpm`; kept by `!defaults` |
 | `tone` | `600` | 300..2000 | sidetone frequency in Hz |
 | `buzzer` | `on` | on, off | piezo buzzer on/off |
 | `volume` | `10` | 1..10 | buzzer level 1..10 |
@@ -189,6 +194,7 @@ The USB serial port (any baud rate) and TCP port 23 (`nc 192.168.7.1 23`, `telne
 | `!version`, `!id` | firmware version; the RF.Guru serial number (`!id set <serial>` on the bench, also the USB serial number; firmware updates and factory settings keep it) |
 | `!inputs`, `!selftest` | hardware check: raw paddle and PTT contacts (`!inputs dit 0 dah 0 ptt 0`); each LED in turn and a beep, then `!selftest done` |
 | `!perf` | longest main-loop stalls since the last `!perf` (diagnostics) |
+| `!fist`, `!fist save`, `!fist forget` | the fist the decoder has learned (dit, dah, gap, letter gap in ms); save it to `config.txt`; clear it |
 
 ---
 

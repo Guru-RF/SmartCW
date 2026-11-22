@@ -2,6 +2,7 @@
 #include "config.h"
 #include "crash.h"
 #include "engine.h"
+#include "fist.h"
 #include "hub.h"
 #include "ident.h"
 #include "net.h"
@@ -41,6 +42,7 @@ void cliHelp(Print &o) {
   o.println(F("!  !drive                expose config.txt as a USB drive now"));
   o.println(F("!  !inputs               raw paddle and PTT contacts, 1 = closed"));
   o.println(F("!  !selftest             each LED in turn and a beep, then !selftest done"));
+  o.println(F("!  !fist [save|forget]   the fist the decoder learned (dit dah gap cgap ms); keep it in config.txt; clear it"));
   o.println(F("!  !reboot               software reset"));
   o.println(F("!  !bootloader           reboot into the UF2 bootloader for a firmware update"));
 }
@@ -205,6 +207,19 @@ void cliExec(const char *lineIn, Print &o) {
              digitalRead(PIN_PTT) == LOW);
   } else if (!strcasecmp(head, "selftest")) {
     hubSelfTest();
+  } else if (!strcasecmp(head, "fist")) {
+    if (argLower == "save") {
+      fistSave();
+      hubStateChanged();
+    } else if (argLower == "forget" || argLower == "reset") {
+      fistForget();
+      hubStateChanged();
+    } else if (*arg) {
+      o.println(F("!err fist, fist save, fist forget"));
+      return;
+    }
+    const Fist &f = fistNow();
+    o.printf("!fist dit %u dah %u gap %u cgap %u saved %s\n", f.dit, f.dah, f.gap, f.cgap, fistSaved() ? "yes" : "no");
   } else if (!strcasecmp(head, "state")) {
     String s;
     webStateJson(s);

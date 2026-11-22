@@ -30,6 +30,8 @@ struct Config {
   int ratio;      // dah length in tenths of a dit, 30 = 3.0
   bool paddleSwap;
   bool autoSpace; // iambic: enforce the letter space after a pause
+  // the operator's fist, learned by the decoder (src/fist.cpp); 0 = not saved
+  int fistDit, fistDah, fistGap, fistCharGap; // ms
   // sound
   int tone;       // sidetone Hz
   bool buzzer;

@@ -3,6 +3,7 @@
 // (AC9YW), MIT licensed: https://github.com/MarkWoodworth/xiaokey
 #include "engine.h"
 #include "config.h"
+#include "fist.h"
 #include "leds.h"
 #include "morse.h"
 #include "output.h"
@@ -233,18 +234,26 @@ static char curEl = 0, lastPress = '.';
 static bool ditMem = false, dahMem = false;
 static bool inChar = false, inWord = false;
 static bool mDown = false; // straight key closed
-static uint32_t kUntil = 0, kLastEnd = 0, kIdleSince = 0, kMarkStart = 0;
+static uint32_t kUntil = 0, kLastEnd = 0, kMarkStart = 0;
 static uint16_t kGapBefore = 0, kComp = 0;
 static char pat[12];
+static uint16_t patMs[12]; // the marks' lengths; hand-made ones are judged again when the letter ends
+static uint16_t patGap[12]; // the gap before each mark
+static uint16_t patHand = 0; // bit per element: made by hand
 static uint8_t patLen = 0;
 static Timing kT;
-static uint16_t adaptDit = 66;
 static int lastMode = -1;
 
 static uint16_t clip16(uint32_t v) { return v > 65535 ? 65535 : (uint16_t)v; }
 
-static void addElement(char e, uint16_t markMs, uint16_t gapMs) {
+static void addElement(char e, uint16_t markMs, uint16_t gapMs, bool hand = false) {
   if (patLen < sizeof(pat) - 1) {
+    patMs[patLen] = markMs;
+    patGap[patLen] = gapMs;
+    if (hand)
+      patHand |= (uint16_t)(1u << patLen);
+    else
+      patHand &= (uint16_t)~(1u << patLen);
     pat[patLen++] = e;
     pat[patLen] = 0;
   }
@@ -254,9 +263,15 @@ static void addElement(char e, uint16_t markMs, uint16_t gapMs) {
 static void emitChar() {
   if (patLen == 0)
     return;
+  // Hand-made marks once more against the fist as it is now: the letter's
+  // own dits and dahs have taught it by then (a new hand, a cold start).
+  for (uint8_t i = 0; i < patLen; i++)
+    if (patHand & (1u << i))
+      pat[i] = fistClassify(patMs[i]);
   char c = morseDecode(pat);
-  push(EV_RX, (uint8_t)c);
+  push(EV_RX, (uint8_t)c, 1, fistFit(pat, patMs, patGap, patHand, patLen)); // b: a letter with a fit, c: the fit
   patLen = 0;
+  patHand = 0;
   pat[0] = 0;
 }
 
@@ -269,9 +284,10 @@ static void keyerClear(uint32_t now) {
   inChar = inWord = false;
   mDown = false;
   patLen = 0;
+  patHand = 0;
   pat[0] = 0;
-  kIdleSince = kLastEnd = now;
-  adaptDit = (uint16_t)(1200 / (config.wpm > 0 ? config.wpm : 18));
+  kLastEnd = now;
+  fistWordBreak();
 }
 
 static char choose(bool d, bool h, bool fromIdle) {
@@ -299,6 +315,8 @@ static void kStart(char e, uint32_t now, bool tx) {
   ditMem = dahMem = false;
   uint16_t on = (e == '.') ? kT.ditOn : kT.dahOn;
   uint16_t extra = txExtra(tx, now, kT.dit, kComp);
+  fistSpace(gap);
+  fistKeyerMark(on);
   markOn(tx ? EVK_TX : 0, now);
   if (e == '.')
     ledDit(true);
@@ -312,30 +330,20 @@ static void kStart(char e, uint32_t now, bool tx) {
 static void manualPress(uint32_t now, uint16_t flags) {
   outSetTone(config.tone);
   kGapBefore = clip16(now - kLastEnd);
+  fistSpace(kGapBefore);
   markOn(flags, now);
   ledDit(true);
   kMarkStart = now;
   inChar = inWord = true;
 }
 
-static void manualRelease(uint32_t now, bool adaptive) {
+static void manualRelease(uint32_t now) {
   markOff(now);
   ledDit(false);
   uint32_t dur = now - kMarkStart;
-  uint32_t ref = adaptive ? adaptDit : kT.dit;
-  char e = dur < 2 * ref ? '.' : '-';
-  if (adaptive) {
-    uint32_t est = (e == '.') ? dur : dur / 3;
-    uint32_t a = (3u * adaptDit + est) / 4u;
-    if (a < 20)
-      a = 20;
-    if (a > 400)
-      a = 400;
-    adaptDit = (uint16_t)a;
-  }
-  addElement(e, clip16(dur), kGapBefore);
+  char e = fistMark(clip16(dur)); // the fist decides: a straight key, or a bug's hand-made dahs
+  addElement(e, clip16(dur), kGapBefore, true);
   kLastEnd = now;
-  kIdleSince = now;
 }
 
 static void straightTick(uint32_t now, bool down, bool tx) {
@@ -344,17 +352,18 @@ static void straightTick(uint32_t now, bool down, bool tx) {
     if (down)
       manualPress(now, (uint16_t)(EVK_STRAIGHT | (tx ? EVK_TX : 0)));
     else
-      manualRelease(now, true);
+      manualRelease(now);
     return;
   }
   if (down)
     return;
   uint32_t idle = now - kLastEnd;
-  if (inChar && idle * 2 > 5u * adaptDit) { // 2.5 dits
+  if (inChar && idle > fistCharEnd()) {
     inChar = false;
     emitChar();
-  } else if (inWord && !inChar && idle > 6u * adaptDit) {
+  } else if (inWord && !inChar && idle > fistWordEnd()) {
     inWord = false;
+    fistWordBreak();
     push(EV_RX, ' ');
   }
 }
@@ -366,7 +375,7 @@ static void autoTick(uint32_t now, bool d, bool h, bool tx) {
   if (m == KM_BUG) { // dah paddle = manual key
     if (ks == K_MANUAL) {
       if (!h) {
-        manualRelease(now, false);
+        manualRelease(now);
         ks = K_IDLE;
       }
       return;
@@ -385,12 +394,15 @@ static void autoTick(uint32_t now, bool d, bool h, bool tx) {
 
   switch (ks) {
   case K_IDLE: {
-    uint32_t idle = now - kIdleSince;
-    if (inChar && idle > 2u * kT.dit) { // + the element gap = 3 dits
+    // The letter and word ends follow the operator's own spacing (the fist),
+    // measured from the end of the last mark, as for a straight key.
+    uint32_t idle = now - kLastEnd;
+    if (inChar && idle > fistCharEnd()) {
       inChar = false;
       emitChar();
-    } else if (inWord && !inChar && idle > 6u * kT.dit) {
+    } else if (inWord && !inChar && idle > fistWordEnd()) {
       inWord = false;
+      fistWordBreak();
       push(EV_RX, ' ');
     }
     char next = choose(d, h, true);
@@ -436,7 +448,6 @@ static void autoTick(uint32_t now, bool d, bool h, bool tx) {
         kStart(next, now, tx);
       } else {
         ks = K_IDLE;
-        kIdleSince = now;
       }
     }
     break;
@@ -609,6 +620,7 @@ static repeating_timer_t timer;
 
 static bool tick(repeating_timer_t *) {
   uint32_t now = millis();
+  fistTick();
   bool d, h, dr, hr, df, hf;
   readPaddles(d, h, dr, hr, df, hf);
   (void)df;
@@ -711,6 +723,7 @@ void engineBegin() {
   pinMode(PIN_DAH, INPUT_PULLUP);
   outBegin();
   calcTiming(kT, config.wpm, 0);
+  fistSeed(config.wpm);
   pat[0] = 0;
   lastMode = config.keyer;
   keyerClear(millis());

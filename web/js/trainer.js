@@ -761,9 +761,38 @@ Pages.train = (() => {
   // ---------- 9. fist analyzer ----------
   function viewFist() {
     let els = [];
+    let fist = null; // what SmartCW has learned: [dit, dah, gap, letter gap] ms, with every element
     const chart = h("div.fchart");
     const sc = scoreChips();
+    const learned = scoreChips();
     const tips = h("ul.tips");
+    const savedNote = h("p.sub");
+    const read = h("div.fread");
+    let got = [];
+    const qClass = (q) => (q < 35 ? "fq0" : q < 70 ? "fq1" : q < 100 ? "fq2" : "fq3");
+    const drawRead = () => {
+      if (!got.length) { read.replaceChildren(h("span.dim", "What SmartCW reads shows up here, coloured by how sure it was of each letter.")); return; }
+      read.replaceChildren(...got.map((g) => (g.c === " " ? h("span", " ") :
+        h("span." + (g.q === undefined ? "fq0" : qClass(g.q)), { title: g.q === undefined ? "" : g.q + " % of the way to the line, worst element" }, g.c))));
+    };
+    const onRx = (m) => {
+      got.push({ c: m.c === "" ? "¿" : m.c, q: m.q });
+      if (got.length > 60) got = got.slice(-60);
+      drawRead();
+    };
+    const drawLearned = () => {
+      const f = fist || (App.cfg.fistDit ? [App.cfg.fistDit, App.cfg.fistDah, App.cfg.fistGap, App.cfg.fistCharGap] : null);
+      if (!f) { learned.set([["learned", "nothing yet"]]); }
+      else {
+        learned.set([
+          ["speed", Math.round(1200 / f[0]) + " wpm"], ["dit", f[0] + " ms"], ["dah", f[1] + " ms"],
+          ["ratio", (f[1] / f[0]).toFixed(2)], ["element gap", (f[2] / f[0]).toFixed(1) + " dit"], ["letter gap", (f[3] / f[0]).toFixed(1) + " dit"],
+        ]);
+      }
+      savedNote.textContent = App.cfg.fistDit
+        ? "A saved fist is in config.txt: the decoder starts from it at every power-up and keeps following you."
+        : "Nothing saved: the decoder starts from the keyer speed at power-up and learns as you key.";
+    };
     const draw = () => {
       if (!els.length) { chart.replaceChildren("Start keying: every mark and space shows up here."); sc.set([["speed", "-"], ["dit", "-"], ["dah", "-"], ["ratio", "-"]]); tips.replaceChildren(); return; }
       const last = els.slice(-48);
@@ -815,13 +844,37 @@ Pages.train = (() => {
       }
       chart.replaceChildren(svg);
     };
-    const onEl = (m) => { els.push({ v: m.v, m: m.m, g: m.g > 3000 ? 0 : m.g }); if (els.length > 200) els = els.slice(-200); draw(); };
+    const onEl = (m) => {
+      els.push({ v: m.v, m: m.m, g: m.g > 3000 ? 0 : m.g });
+      if (els.length > 200) els = els.slice(-200);
+      if (Array.isArray(m.f) && m.f.length === 4) fist = m.f;
+      draw();
+      drawLearned();
+    };
+    const fistCmd = async (line, msg) => {
+      try { await post("/api/cmd", { line }); toast(msg, "ok"); } catch (e) { toast("SmartCW did not answer", "err"); }
+    };
     Bus.on("el", onEl);
+    Bus.on("rx", onRx);
+    Bus.on("state", drawLearned);
     draw();
+    drawLearned();
+    drawRead();
     return {
       els: [h("p.sub", "Key anything: SmartCW measures every mark and space you make and shows how even your fist is."),
-        chart, sc.el, tips, h("div.actions", h("button", { type: "button", onclick: () => { els = []; draw(); } }, "Reset"))],
-      cleanup: () => Bus.off("el", onEl),
+        chart, sc.el, tips, h("div.actions", h("button", { type: "button", onclick: () => { els = []; draw(); } }, "Reset")),
+        h("h3", "What SmartCW decodes you by"),
+        h("p.sub", "Hand keying is read against your own timing: your dit, your dah, the gap you leave inside a letter and the gap between letters. SmartCW learns them while you key, a straight key, a bug or the spacing on paddles, and follows a change of hand within a few letters."),
+        learned.el, savedNote,
+        h("h3", "How sure it was"),
+        h("p.sub", "Each letter coloured by its worst element: how far it sat from your dit or dah, or a gap from the gap you leave inside or between letters. ",
+          h("span.fq0", "sure"), ", ", h("span.fq1", "fair"), ", ", h("span.fq2", "close to the line"), ", ", h("span.fq3", "over it"),
+          ". Red and orange letters are the ones to key more evenly, or the fist is still settling."),
+        read,
+        h("div.actions",
+          h("button.primary", { type: "button", onclick: () => fistCmd("fist save", "Saved: SmartCW starts from your fist from now on") }, "Save as my fist"),
+          h("button", { type: "button", onclick: () => fistCmd("fist forget", "Forgotten: back to the keyer speed") }, "Forget"))],
+      cleanup: () => { Bus.off("el", onEl); Bus.off("rx", onRx); Bus.off("state", drawLearned); },
     };
   }
 

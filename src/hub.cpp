@@ -1,4 +1,5 @@
 #include "hub.h"
+#include "fist.h"
 #include "config.h"
 #include "cwd.h"
 #include "engine.h"
@@ -168,7 +169,7 @@ static void syncPaddles() {
 }
 
 static void handle(const Event &e) {
-  char buf[96], ch[8];
+  char buf[128], ch[8];
   wkEvent(e);
   cwdEvent(e);
   switch (e.type) {
@@ -188,8 +189,12 @@ static void handle(const Event &e) {
     pttCommand((char)e.a);
     break;
   case EV_ELEM:
-    snprintf(buf, sizeof(buf), "{\"e\":\"el\",\"v\":\"%c\",\"m\":%u,\"g\":%u}", e.a, e.b, e.c);
-    webEvent(buf);
+    {
+      const Fist &f = fistNow();
+      snprintf(buf, sizeof(buf), "{\"e\":\"el\",\"v\":\"%c\",\"m\":%u,\"g\":%u,\"f\":[%u,%u,%u,%u]}", e.a, e.b, e.c,
+               f.dit, f.dah, f.gap, f.cgap);
+      webEvent(buf);
+    }
     break;
   case EV_RX: {
     char c = (char)e.a;
@@ -203,7 +208,10 @@ static void handle(const Event &e) {
       hubStream("\xC2\xBF"); // ¿
       ch[0] = 0;
     }
-    snprintf(buf, sizeof(buf), "{\"e\":\"rx\",\"c\":\"%s\"}", ch);
+    if (e.b)
+      snprintf(buf, sizeof(buf), "{\"e\":\"rx\",\"c\":\"%s\",\"q\":%u}", ch, e.c);
+    else
+      snprintf(buf, sizeof(buf), "{\"e\":\"rx\",\"c\":\"%s\"}", ch);
     webEvent(buf);
     break;
   }

@@ -148,7 +148,7 @@ A line starting with `!` is a command, ended by CR or LF. Every response line st
 | `!help` | the command list |
 | `!status` | settings, USB and network in words (second line: `!id <serial or none>, chip <chip ID>`); after an unexpected restart also `!last crash: ...` |
 | `!state` | `!state {...}`: the same JSON as `GET /api/state` |
-| `!version` | `!version 2.3.7` |
+| `!version` | `!version 2.4.0` |
 | `!id` | `!id SCW-00042`: the RF.Guru serial number, or `!id none` when the board has none yet |
 | `!id set <serial>` | store the serial number (1–24 characters, A–Z, 0–9 and `-`, lowercase is raised); replies `!id <serial>`. Refused with `!err id already set: !id clear first` while another one is stored. It is kept in its own flash sector: firmware updates, `config.txt` and factory settings never touch it, only `flash_nuke.uf2` erases it. From the next restart it is also the USB serial number |
 | `!id clear` | remove it; replies `!id none`. The USB serial number goes back to the chip ID after a restart |
@@ -173,7 +173,7 @@ A line starting with `!` is a command, ended by CR or LF. Every response line st
 | `!reboot` | restart; writes `config.txt` first when a change is pending |
 | `!bootloader` | `!rebooting into UF2 bootloader`, then the UF2 bootloader (`RPI-RP2`); writes `config.txt` first when a change is pending, so a setting changed just before an update is kept |
 
-The boot banner, sent about 1.5 s after power-up, starts with `!SmartCW 2.3.7 ready` and ends with `!type text to send CW, !help for commands`. A TCP client gets a one-line greeting.
+The boot banner, sent about 1.5 s after power-up, starts with `!SmartCW 2.4.0 ready` and ends with `!type text to send CW, !help for commands`. A TCP client gets a one-line greeting.
 
 ### Minimal client (Python)
 
@@ -254,7 +254,7 @@ Plain HTTP on port 80. Requests are `GET` or `POST` with url-encoded form fields
 | `state` | `s` = same as `/api/state` | sent on connect and after every change |
 | `k` | `d` = 1/0, `f` = flags (1 TX, 2 straight key, 4 text player, 8 tune) | key down / up |
 | `el` | `v` = `.` or `-`, `m` = mark ms, `g` = gap before it in ms | an element keyed on the paddles or key |
-| `rx` | `c` = character, `" "` word gap, `""` unknown | a character decoded from the paddles or key |
+| `rx` | `c` = character, `" "` word gap, `""` unknown; `q` = fit of a letter, 0 dead on the learned fist, 100 on the dit/dah or gap line, more = an outlier | a character decoded from the paddles or key |
 | `tx` | `c` = character, `p` = profile (0 tx, 1 train, 2 practice) | the text player starts a character |
 | `done` | | the text player ran out of text |
 | `abort` | | a paddle interrupted text or the beacon |
