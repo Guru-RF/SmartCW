@@ -126,7 +126,7 @@ Every setting can be changed in the web interface, with `!<setting> <value>` ove
 | `tone` | `600` | 300..2000 | sidetone frequency in Hz |
 | `buzzer` | `on` | on, off | piezo buzzer on/off |
 | `volume` | `10` | 1..10 | buzzer level 1..10 |
-| `lineLevel` | `10` | 1..10 | line out level 1..10 |
+| `lineLevel` | `10` | 1..10 | line out level, 4 dB a step: 10 drives a radio, headphones want 3 to 6 |
 | `lineSidetone` | `off` | on, off | audio mode: the sidetone on line out as well as the TX tone (key and off modes always have it there) |
 | `output` | `key` | key, audio, off | key = output keys the radio, audio = output is PTT and the tone goes out on line out, off = practice |
 | `pttLead` | `50` | 0..500 | audio mode: ms between PTT and the first tone |

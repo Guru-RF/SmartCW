@@ -65,7 +65,7 @@ Pages.settings = (() => {
               h("button.sm", { type: "button", onclick: () => post("/api/beep", { n: 1 }) }, "Test"))),
             row("Buzzer", "the piezo in SmartCW", switchInput("buzzer")),
             row("Buzzer level", "1 to 10", rangeInput("volume")),
-            row("Line out level", "1 to 10, for headphones or the radio's input", rangeInput("lineLevel")),
+            row("Line out level", "4 dB a step; headphones want 3 to 6, a radio's input 10", rangeInput("lineLevel")),
             row("Sidetone on line out in audio mode", "key line and practice always have it there; in audio mode the radio's input hears it too", switchInput("lineSidetone")),
             row("Sidetone in this browser", "what you key is heard on this computer too, a moment after SmartCW; the speaker button on the Live page mutes it", browserSidetone()),
             row("Browser volume", "1 to 10, for the sidetone, the tree and the trainer in this browser", browserVolume())),

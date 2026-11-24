@@ -33,6 +33,8 @@ Settings → Transmit output, or `!output key|audio|off`.
 
 The piezo in the box and line out both carry the sidetone, each with its own level (`volume` and `lineLevel`, 1 to 10) and the same pitch (`tone`, 300 to 2000 Hz). `buzzer: off` silences the piezo. The browser can play it as well, see [chapter 4](04-web-interface.md).
 
+Line out is a clean sine, and its level is a real volume: 4 dB a step, 36 dB between 1 and 10. Level 10 drives a radio's input; headphones on the AUDIO jack want 3 to 6, so turn it down before you put them on. The piezo's level changes less, as a piezo wants a square wave to be loud at all.
+
 ## QSK timing
 
 Two settings touch only what goes on the air, as the WinKeyer settings of the same name:

@@ -4,9 +4,28 @@
 #include "pins.h"
 #include <hardware/clocks.h>
 #include <hardware/gpio.h>
+#include <hardware/irq.h>
 #include <hardware/pwm.h>
 
 static const uint16_t WRAP = 4095;
+
+// Line out is a sine, not a square. Its PWM runs flat out at about 65 kHz
+// (wrap 2047, no divider), far above hearing, and the slice's wrap interrupt
+// writes one sample of a sine per period. lineLevel sets the amplitude, 4 dB
+// a step, so it is a volume at last: a square wave's duty cycle, which it
+// used to set, changes the timbre and barely the loudness, and 3.3 V peak
+// into headphones is painful at every setting. Idle sits at the midpoint and
+// the tone fades in and out over 4 ms, so keying does not click.
+static const uint16_t LINE_WRAP = 2047;
+static const uint16_t LINE_MID = (LINE_WRAP + 1) / 2;
+static const uint LINE_SLICE = 7, LINE_CHAN = PWM_CHAN_B; // GPIO 15
+static int16_t sineTab[256];
+static const uint16_t lineAmpTab[11] = {0, 16, 26, 41, 65, 102, 162, 257, 407, 645, 1023}; // 1023 * 10^(-(10-level)*4/20)
+static volatile uint32_t linePhaseInc = 0;
+static volatile uint16_t lineAmp = 0;
+static volatile bool lineOn = false;
+static uint32_t linePhase = 0;
+static uint16_t lineEnv = 0; // 0..256, the fade
 static volatile bool cfgChanged = true;
 static volatile bool forceBuzzer = false;
 static int curTone = 0;
@@ -47,6 +66,54 @@ static void pwmFreq(int pin, int hz) {
   pwm_set_clkdiv_int_frac(slice, div16 >> 4, div16 & 15);
 }
 
+static void __not_in_flash_func(lineIsr)() {
+  if (!(pwm_get_irq_status_mask() & (1u << LINE_SLICE)))
+    return;
+  pwm_clear_irq(LINE_SLICE);
+  if (lineOn) {
+    if (lineEnv < 256)
+      lineEnv++;
+  } else if (lineEnv) {
+    lineEnv--;
+  }
+  uint16_t v = LINE_MID;
+  if (lineEnv) {
+    linePhase += linePhaseInc;
+    int32_t a = ((int32_t)lineAmp * lineEnv) >> 8;
+    v = (uint16_t)(LINE_MID + ((sineTab[linePhase >> 24] * a) >> 15));
+  }
+  pwm_set_chan_level(LINE_SLICE, LINE_CHAN, v);
+}
+
+static void lineInit() {
+  for (int i = 0; i < 256; i++)
+    sineTab[i] = (int16_t)lroundf(32767.0f * sinf(i * 6.2831853f / 256));
+  gpio_set_function(PIN_LINEOUT, GPIO_FUNC_PWM);
+  pwm_set_wrap(LINE_SLICE, LINE_WRAP);
+  pwm_set_clkdiv_int_frac(LINE_SLICE, 1, 0);
+  pwm_set_chan_level(LINE_SLICE, LINE_CHAN, LINE_MID);
+  pwm_clear_irq(LINE_SLICE);
+  pwm_set_irq_enabled(LINE_SLICE, true);
+  irq_add_shared_handler(PWM_IRQ_WRAP, lineIsr, PICO_SHARED_IRQ_HANDLER_HIGHEST_ORDER_PRIORITY);
+  irq_set_priority(PWM_IRQ_WRAP, 0); // short, and it must not miss a sample under the engine tick
+  irq_set_enabled(PWM_IRQ_WRAP, true);
+  pwm_set_enabled(LINE_SLICE, true);
+}
+
+static void lineTone(int hz) {
+  uint32_t fs = clock_get_hz(clk_sys) / (LINE_WRAP + 1);
+  linePhaseInc = (uint32_t)(((uint64_t)hz << 32) / fs);
+}
+
+static void lineSet(bool on, int level) {
+  if (level < 1)
+    level = 1;
+  if (level > 10)
+    level = 10;
+  lineAmp = lineAmpTab[level];
+  lineOn = on;
+}
+
 static void setLevel(int pin, bool on, int level) {
   if (level < 1)
     level = 1;
@@ -62,14 +129,14 @@ static void applySound() {
   // the radio's input and carries the TX tone after the PTT lead, plus the
   // sidetone when the operator asked for it there too (lineSidetone).
   bool line = (curOutput == OUT_AUDIO) ? (lineTx || (config.lineSidetone && sideOn)) : sideOn;
-  setLevel(PIN_LINEOUT, line, config.lineLevel);
+  lineSet(line, config.lineLevel);
 }
 
 void outBegin() {
   pinMode(PIN_CWOUT, OUTPUT);
   digitalWrite(PIN_CWOUT, LOW);
   pwmInit(PIN_BUZZER);
-  pwmInit(PIN_LINEOUT);
+  lineInit();
   curOutput = config.output;
   outSetTone(config.tone);
 }
@@ -83,7 +150,7 @@ void outSetTone(int hz) {
     return;
   curTone = hz;
   pwmFreq(PIN_BUZZER, hz);
-  pwmFreq(PIN_LINEOUT, hz);
+  lineTone(hz);
 }
 
 void outAllOff() {

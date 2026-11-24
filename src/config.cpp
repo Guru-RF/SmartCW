@@ -30,7 +30,7 @@ static const CfgItem items[] = {
     I("tone", tone, 300, 2000, 600, "sound", 0, "sidetone frequency in Hz"),
     B("buzzer", buzzer, 1, "sound", 0, "piezo buzzer on/off"),
     I("volume", volume, 1, 10, 10, "sound", 0, "buzzer level 1..10"),
-    I("lineLevel", lineLevel, 1, 10, 10, "sound", 0, "line out level 1..10"),
+    I("lineLevel", lineLevel, 1, 10, 10, "sound", 0, "line out level 1..10, 4 dB a step"),
     B("lineSidetone", lineSidetone, 0, "sound", 0, "audio mode: also put the sidetone on line out (key and off modes always do)"),
 
     E("output", output, "key|audio|off", OUT_KEY, "output", 0,
