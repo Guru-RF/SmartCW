@@ -15,7 +15,7 @@ enum EventType : uint8_t {
   EV_ABORT,   // a paddle interrupted the player
   EV_PTT,     // a: audio-mode PTT on/off
   EV_PADDLE,  // a: 'd'/'D' dit contact on/off, 'h'/'H' dah contact on/off (raw)
-  EV_CMD,     // a: '.' or '-', a paddle tapped while PTT is held (speed down / up)
+  EV_CMD,     // a: '.' or '-', a paddle tapped while PTT is held (speed down / up); 'b' both squeezed (the menu)
 };
 enum KeyFlags : uint16_t {
   EVK_TX = 1,       // this mark goes out on the TX path (not practice)

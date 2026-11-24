@@ -63,5 +63,17 @@ The defaults are a CQ, your call, `TU 5NN`, a sign-off, `QRL?`, `{call} DE {call
 | short, under 1.5 s | a PTT pulse over MIDI (note `midiPttNote`), PWR blinks | types Enter |
 | long, 1.5 s | toggles straight key and paddle keyer; 1 beep keyer, 2 beeps straight | same |
 | held, tap a paddle | dit = 1 wpm slower, dah = 1 wpm faster; the new speed is played, never transmitted | same |
+| held, squeeze both paddles | the menu, see below | same |
 
 While a contest logger has SmartCW open as a WinKeyer, the speed change is reported as the WinKeyer speed pot and the button as pushbutton 1.
+
+## The menu on the box
+
+The settings you reach for at the key are on the box itself, without a computer. Hold the PTT button and squeeze both paddles: SmartCW answers **VOL** in CW on the sidetone. While the menu is open nothing is transmitted and the paddles key nothing.
+
+- **Dah** goes to the next item, **dit** to the previous one; each is said by name: VOL (buzzer level), LINE (line out level, the headphones), TONE (pitch, 50 Hz a step), KEY (keyer: A, B, U for Ultimatic, BUG, STR for straight), SWAP (the paddles swapped), OUT (KEY, AUD for audio + PTT, OFF for practice), BUZ (buzzer on or off), KBD (USB keyboard on or off).
+- A **short press** opens the item and says its value. Dah steps it up, dit down; a switch flips on either paddle. Every step is said, and you hear it at the new setting: the volume at the new volume, the pitch at the new pitch.
+- A **short press** again saves it. SmartCW says **R** and the menu closes. KBD restarts SmartCW after the R, as the USB layout changes.
+- A **long press**, or 30 seconds of silence, puts the value back and closes the menu with **SK**.
+
+The web page and the serial console follow along: a saved item appears there as `!menu volume 5`.

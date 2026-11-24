@@ -16,6 +16,7 @@
 #include "hub.h"
 #include "ident.h"
 #include "leds.h"
+#include "menu.h"
 #include "net.h"
 #include "pins.h"
 #include "ptt.h"
@@ -98,6 +99,7 @@ void loop() {
   hubTick();
   timed(0, t);
   pttTick();
+  menuTick();
   cliTick();
   wkTick();
   timed(1, t);

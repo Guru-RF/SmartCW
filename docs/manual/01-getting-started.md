@@ -40,6 +40,8 @@ All three LEDs on at once, steadily, means SmartCW sits in its update mode (the 
 
 Hold the PTT button and tap the dit paddle for 1 wpm slower, the dah paddle for 1 wpm faster. When you let go, SmartCW says the new speed on the sidetone. It is saved.
 
+Hold the PTT button and squeeze both paddles for the **menu**: volume, line out level, pitch, key type, paddle swap, output, buzzer and keyboard, set from the paddles with SmartCW answering in CW. [Chapter 2](02-keying.md#the-menu-on-the-box) has it.
+
 ## Where things are set
 
 Every setting lives in one plain text file, `config.txt`, inside SmartCW. You change it from the web page, with a `!` command on the serial port or TCP, or by editing the file on the `SMARTCW` USB drive (hold both paddles while plugging in). [Chapter 7](07-reference.md) lists every setting.

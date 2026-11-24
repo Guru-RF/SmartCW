@@ -116,7 +116,8 @@ Pages.settings = (() => {
             row(["USB Ethernet", rn()], "turning it off removes this web interface", switchInput("network")),
             row(["Address", rn()], "your computer gets an address next to it automatically", textInput("ip", { maxlength: 15, inputmode: "decimal" })),
             row(["TCP port", rn()], "text and command protocol, like the serial port", numInput("tcpPort")),
-            row(["cwdaemon port", rn()], "UDP, for Linux loggers (CQRLOG, TLF, xlog); 0 = off", numInput("cwdaemonPort"))))));
+            row(["cwdaemon port", rn()], "UDP, for Linux loggers (CQRLOG, TLF, xlog); 0 = off", numInput("cwdaemonPort")),
+            row("Update notice", "this page asks smartcw.app once a day, from your browser, whether a newer firmware is out", switchInput("updateCheck"))))));
 
     Bus.on("saved", () => flashSaved());
     Bus.on("state", () => {

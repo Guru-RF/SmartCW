@@ -81,6 +81,7 @@ When the host **ejects** the `SMARTCW` drive, SmartCW reboots and applies the ed
 | short (released before 1.5 s) | MIDI PTT pulse: note `midiPttNote` on, off 150 ms later; PWR + SER2 LEDs flash | types Enter |
 | long (held 1.5 s) | toggles straight key and the paddle keyer: 1 beep = keyer, 2 beeps = straight; saved | same |
 | held, tap a paddle | dit = 1 wpm slower, dah = 1 wpm faster; the new speed is played on the sidetone when you let go (never transmitted); saved | same |
+| held, squeeze both paddles | the **menu**: SmartCW says VOL in CW. Dah = next item, dit = previous (VOL, LINE, TONE, KEY, SWAP, OUT, BUZ, KBD); short press opens it and says the value, dah/dit step it (heard at the new setting), short press saves (R); long press or 30 s puts it back (SK). KBD restarts | same |
 
 While a logger has SmartCW open as a WinKeyer, the PTT speed change acts as WinKeyer's speed pot and the button is reported as pushbutton 1.
 
@@ -166,6 +167,7 @@ Every setting can be changed in the web interface, with `!<setting> <value>` ove
 | `ip` | `192.168.7.1` | text, 15 chars | SmartCW's address; the computer gets the next free one from its DHCP server (/24) (restart) |
 | `tcpPort` | `23` | 1..65535 | TCP port for the text/command protocol (restart) |
 | `cwdaemonPort` | `6789` | 0..65535 | cwdaemon UDP port for Linux loggers, 0 = off (restart) |
+| `updateCheck` | `on` | on, off | the web page asks smartcw.app once a day whether a newer firmware is out, and says so |
 
 Memories, the beacon text and the trainer understand `{call}` and `{name}`, and prosigns written as `<SK>`, `<KN>`, `<AR>`, `<BT>`, `<AS>`, `<BK>`, `<HH>`. Memories also understand `{nr}`, the contest serial number: it is sent as three digits (`001`, or `TT1` with `cutNumbers: t`) and moves on to the next number once the memory is sent; `{lastnr}` repeats the previous one when someone asks again. Set the number for a new contest on the Live page, in Settings or with `!nr 1`.
 
@@ -251,9 +253,10 @@ Set **USB keyboard** on and **Keyboard sends: Paddle keys** (`keyboard: true`, `
 
 ## 🔁 Firmware update
 
-Pre-built UF2 files are attached to every [GitHub release](https://github.com/Guru-RF/SmartCW/releases). Settings are kept.
+Pre-built UF2 files are attached to every [GitHub release](https://github.com/Guru-RF/SmartCW/releases). Settings are kept. The web page tells you when a newer firmware is out: it asks smartcw.app once a day, from your browser (`updateCheck: off` stops that; SmartCW itself has no internet).
 
-- **Web**: System → *Restart into update mode*, then drag `smartcw-*.uf2` onto the `RPI-RP2` drive.
+- **Website**: [smartcw.app/update](https://smartcw.app/update) in Chrome, Edge or Brave writes the newest release over the USB cable.
+- **Web page**: System → *Restart into update mode*, then drag `smartcw-*.uf2` onto the `RPI-RP2` drive.
 - **Command**: send `!bootloader` over serial or TCP, then drag the UF2 onto `RPI-RP2`.
 - **Config file**: boot with both paddles held, replace the contents of `config.txt` with the single word `firmwareupdate`, eject.
 - **BOOTSEL (recovery)**: unplug, hold BOOTSEL, plug in, release; drag the UF2 onto `RPI-RP2`.
@@ -382,3 +385,4 @@ Inputs are active-low with internal pull-ups; LEDs are active-low.
 - The iambic keyer logic started from [xiaoKey](https://github.com/MarkWoodworth/xiaokey) by Mark Woodworth (AC9YW), MIT licensed.
 - The DHCP server is MicroPython's (Damien P. George), MIT licensed, as shipped in arduino-pico.
 - The visual Morse tree layout follows the classic dichotomic Morse tree.
+- Dave, G3LRC, measured the line out at 80 dB whatever the level and so found the volume bug fixed in 2.4.1, and asked for the update notice, a volume control on the box and swapping the paddles on the box itself: the menu of 2.4.2.

@@ -83,6 +83,7 @@ static const CfgItem items[] = {
       "SmartCW's address; the computer gets the next free one from its DHCP server (/24)"),
     I("tcpPort", tcpPort, 1, 65535, 23, "network", CF_REBOOT, "TCP port for the text/command protocol"),
     I("cwdaemonPort", cwdaemonPort, 0, 65535, 6789, "network", CF_REBOOT, "cwdaemon UDP port for Linux loggers, 0 = off"),
+    B("updateCheck", updateCheck, 1, "network", 0, "the web page asks smartcw.app once a day whether a newer firmware is out, and says so"),
 };
 
 static const int ITEM_COUNT = sizeof(items) / sizeof(items[0]);

@@ -649,11 +649,20 @@ static bool tick(repeating_timer_t *) {
     cmdLatch = true;
     keyerClear(now);
   }
+  static bool cmdBoth = false;
   if (cmdLatch) {
     if (dr)
       push(EV_CMD, '.');
     if (hr)
       push(EV_CMD, '-');
+    if (d && h) { // squeezed: the menu. After the edges, so the menu does not see the second paddle as a step.
+      if (!cmdBoth) {
+        cmdBoth = true;
+        push(EV_CMD, 'b');
+      }
+    } else if (!d && !h) {
+      cmdBoth = false;
+    }
     if (!cmdHeld && !d && !h)
       cmdLatch = false;
   }

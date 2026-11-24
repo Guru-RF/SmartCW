@@ -13,3 +13,9 @@ spacing, and a fist seeded from `config.txt`.
 Exit status 1 when any test decodes with errors; the per-test lines show the
 learned fist and the decoded text. Cold starts miss a first letter or two by
 design (the fist is learned from the letters themselves).
+
+`menutest.cpp` drives the menu on the box (`src/menu.cpp`) with a stubbed
+config table and engine: item navigation with wrap, stepping numbers,
+switches and choices, save, cancel, the timeout and the restart after KBD.
+
+    g++ -std=c++17 -I. -I../../src menutest.cpp -o menutest && ./menutest

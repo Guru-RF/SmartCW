@@ -56,6 +56,7 @@ Every setting can be changed on the Settings page, with `!<setting> <value>` on 
 | `ip` | `192.168.7.1` | text, 15 chars | SmartCW's address; the computer gets the next free one from its DHCP server (/24) (restart) |
 | `tcpPort` | `23` | 1..65535 | TCP port for the text/command protocol (restart) |
 | `cwdaemonPort` | `6789` | 0..65535 | cwdaemon UDP port for Linux loggers, 0 = off (restart) |
+| `updateCheck` | `on` | on, off | the web page asks smartcw.app once a day whether a newer firmware is out, and says so |
 
 Memories, the beacon text and the trainer understand `{call}` and `{name}`, and prosigns written as `<SK>`, `<KN>`, `<AR>`, `<BT>`, `<AS>`, `<BK>`, `<HH>`. Memories also understand `{nr}`, the contest serial number, sent as three digits (`001`, or `TT1` with `cutNumbers: t`), which moves on once the memory is sent, and `{lastnr}`, the previous one.
 

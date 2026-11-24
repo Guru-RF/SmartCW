@@ -2,6 +2,7 @@
 #include "config.h"
 #include "engine.h"
 #include "hub.h"
+#include "menu.h"
 #include "pins.h"
 #include "wk.h"
 
@@ -13,7 +14,8 @@ static bool wasPressed = false;
 static bool longFired = false;
 static unsigned long pressedSince = 0;
 static int lastPaddleMode = KM_IAMBIC_B;
-static bool cmdUsed = false; // paddles changed the speed during this press
+static bool cmdUsed = false; // paddles changed the speed during this press, or opened the menu
+static int wpmAtPress = 0;
 
 void pttBegin() { pinMode(PIN_PTT, INPUT_PULLUP); }
 
@@ -35,7 +37,21 @@ void pttToggleKeyer() {
 }
 
 void pttCommand(char c) {
+  if (menuActive()) {
+    menuPaddle(c);
+    return;
+  }
   cmdUsed = true;
+  if (c == 'b') { // both paddles squeezed while PTT is held: the menu. The first paddle's speed step is taken back.
+    if (config.wpm != wpmAtPress) {
+      config.wpm = wpmAtPress;
+      if (wkOpen())
+        wkSpeedChanged();
+      hubStateChanged();
+    }
+    menuEnter();
+    return;
+  }
   int w = constrain(config.wpm + (c == '-' ? 1 : -1), 5, 99);
   if (w == config.wpm)
     return;
@@ -50,13 +66,24 @@ void pttCommand(char c) {
 void pttTick() {
   unsigned long now = millis();
   bool pressed = digitalRead(PIN_PTT) == LOW;
-  engineCommandHold(pressed);
-  if (pressed != wasPressed)
+  engineCommandHold(pressed || menuActive());
+  if (pressed != wasPressed && !menuActive())
     wkButton(pressed);
   if (pressed && !wasPressed) {
     pressedSince = now;
     longFired = false;
     cmdUsed = false;
+    wpmAtPress = config.wpm;
+  }
+  if (menuActive()) { // in the menu the button selects and saves (short) or cancels (long); the press that opened it does nothing more
+    if (pressed && !longFired && !cmdUsed && now - pressedSince >= LONG_PRESS_MS) {
+      longFired = true;
+      menuCancel();
+    }
+    if (!pressed && wasPressed && !longFired && !cmdUsed && now - pressedSince >= DEBOUNCE_MS)
+      menuButton();
+    wasPressed = pressed;
+    return;
   }
   if (pressed && !longFired && !cmdUsed && now - pressedSince >= LONG_PRESS_MS) {
     longFired = true;

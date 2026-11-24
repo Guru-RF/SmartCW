@@ -16,7 +16,7 @@ Pages.system = (() => {
     const yes = (b, extra) => h("span.pill" + (b ? ".up" : ".off"), b ? "on" : "off", extra ? " " + extra : "");
     const r = (k, v) => h("div.kv", h("span.k", k), h("span.v", v));
     statusRows.replaceChildren(...[
-      r("Firmware", "SmartCW " + App.v),
+      r("Firmware", "SmartCW " + App.v + (!App.latest ? "" : verNewer(App.latest, App.v) ? ", " + App.latest + " is out" : ", the newest")),
       r("Serial number", h("span", App.id || "not set", h("small.dim", "  ·  chip " + App.chip))),
       r("Uptime", fmtUptime(App.up)),
       r("Key type", c.keyer || "-"),
@@ -85,11 +85,14 @@ Pages.system = (() => {
   }
 
   function updateCard() {
-    return card("download", "Firmware update", "New firmware is a .uf2 file",
+    return card("download", "Firmware update", "Settings are kept",
+      h("p", "The easy way: ", h("a", { href: "https://smartcw.app/update", target: "_blank", rel: "noopener" }, "smartcw.app/update"),
+        " in Chrome, Edge or Brave writes the newest firmware over the USB cable. This page tells you when there is one, unless you turn ", h("i", "Update notice"), " off under Settings → USB network."),
+      h("p", "By hand:"),
       h("ol.howto",
         h("li", "Download the latest smartcw-*.uf2 from ", h("a", { href: "https://github.com/Guru-RF/SmartCW/releases", target: "_blank", rel: "noopener" }, "github.com/Guru-RF/SmartCW"), "."),
         h("li", "Press the button below: SmartCW restarts as a drive called RPI-RP2."),
-        h("li", "Copy the .uf2 file onto that drive. SmartCW restarts with the new firmware, settings are kept.")),
+        h("li", "Copy the .uf2 file onto that drive. SmartCW restarts with the new firmware.")),
       h("div.actions", h("button.primary", { type: "button", onclick: bootloader }, icon("download"), "Restart into update mode")),
       h("p.hint", "Without this page: send !bootloader over serial or TCP, or put the single word firmwareupdate in config.txt."));
   }

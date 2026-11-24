@@ -75,6 +75,7 @@ struct Config {
   char ip[16];
   int tcpPort;
   int cwdaemonPort; // UDP, 0 = off
+  bool updateCheck; // the web page asks smartcw.app, from the browser, whether a newer firmware is out
 };
 
 extern Config config;
